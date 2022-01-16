@@ -3,9 +3,7 @@
 
 name: Java CI with Maven
 
-on:
-  push:
-    branches-ignore: [ main ]
+on: push
 
 jobs:
   build:
