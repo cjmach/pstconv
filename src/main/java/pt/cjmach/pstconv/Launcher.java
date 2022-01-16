@@ -92,7 +92,7 @@ public class Launcher {
      * @return
      * @throws ParseException 
      */
-    private static CommandLine cmdlineParse(String[] args) throws ParseException {
+    static CommandLine cmdlineParse(String[] args) throws ParseException {
         Option helpOption = Option.builder(OPT_SHORT_HELP).longOpt(OPT_LONG_HELP)
                 .desc("Print help and exit")
                 .hasArg(false)
