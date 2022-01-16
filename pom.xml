@@ -14,6 +14,10 @@
         <maven.compiler.target>11</maven.compiler.target>
     </properties>
     
+    <scm>
+        <developerConnection>scm:git:git@github.com:cjmach/pstconv.git</developerConnection>
+    </scm>
+    
     <distributionManagement>
         <repository>
             <id>github</id>
