@@ -18,6 +18,9 @@ package pt.cjmach.pstconv;
 import com.pff.PSTException;
 import java.io.File;
 import java.io.IOException;
+import java.util.jar.Attributes;
+import java.util.jar.Manifest;
+import java.util.logging.Level;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.DefaultParser;
@@ -51,8 +54,8 @@ public class Launcher {
     private static final Logger logger = LoggerFactory.getLogger(Launcher.class);
 
     /**
-     * 
-     * @param args 
+     *
+     * @param args
      */
     public static void main(String[] args) {
         CommandLine cmdLine;
@@ -72,7 +75,7 @@ public class Launcher {
         String formatValue = cmdLine.getOptionValue(OPT_SHORT_FORMAT, OutputFormat.EML.format);
         OutputFormat outputFormat = OutputFormat.valueOfFormat(formatValue);
         String encoding = cmdLine.getOptionValue(OPT_SHORT_ENCODING, "UTF-8");
-        
+
         PstConverter converter = new PstConverter();
         try {
             converter.convert(inputFile, outputDirectory, outputFormat, encoding);
@@ -87,10 +90,10 @@ public class Launcher {
     }
 
     /**
-     * 
+     *
      * @param args
      * @return
-     * @throws ParseException 
+     * @throws ParseException
      */
     static CommandLine cmdlineParse(String[] args) throws ParseException {
         Option helpOption = Option.builder(OPT_SHORT_HELP).longOpt(OPT_LONG_HELP)
@@ -149,13 +152,13 @@ public class Launcher {
     }
 
     /**
-     * 
+     *
      * @param allOptions
      * @param helpOption
      * @param versionOption
      * @param args
      * @return
-     * @throws ParseException 
+     * @throws ParseException
      */
     private static boolean checkForHelpOrVersion(Options allOptions, Option helpOption, Option versionOption, String[] args) throws ParseException {
         OptionGroup group = new OptionGroup()
@@ -171,12 +174,24 @@ public class Launcher {
                 return true;
             }
             if (cmdLine.hasOption(OPT_SHORT_VERSION)) {
-                System.out.println("0.1.0-SNAPSHOT");
+                System.out.println(getVersion());
                 return true;
             }
             return false;
         } catch (ParseException ignore) {
             return false;
+        }
+    }
+
+    private static String getVersion() {
+        try {
+            Manifest manifest = new Manifest(Launcher.class.getResourceAsStream("/META-INF/MANIFEST.MF"));
+            Attributes attributes = manifest.getMainAttributes();
+            String version = attributes.getValue("Implementation-Version");
+            return version;
+        } catch (IOException ex) {
+            logger.error("Could not read MANIFEST.MF file", ex);
+            return "";
         }
     }
 }

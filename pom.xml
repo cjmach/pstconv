@@ -107,6 +107,8 @@
                     <appendAssemblyId>false</appendAssemblyId>
                     <archive>
                         <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                            <addDefaultSpecificationEntries>true</addDefaultSpecificationEntries>
                             <mainClass>pt.cjmach.pstconv.Launcher</mainClass>
                         </manifest>
                     </archive>
