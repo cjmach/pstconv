@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Converts an Outlook OST/PST file to MBox or EML format.
- * 
+ *
  * @author cmachado
  */
 public class PstConverter {
@@ -71,14 +71,15 @@ public class PstConverter {
 
     /**
      * Converts an Outlook OST/PST file to MBox or EML format.
-     * 
+     *
      * @param inputFile The input PST file.
-     * @param outputDirectory The directory where the email messages are extracted to and saved.
+     * @param outputDirectory The directory where the email messages are
+     * extracted to and saved.
      * @param format The output format (MBOX or EML).
      * @param encoding The charset encoding to use for character data.
-     * 
+     *
      * @throws PSTException
-     * @throws IOException 
+     * @throws IOException
      */
     public void convert(File inputFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, IOException {
         if (!inputFile.exists()) {
@@ -147,9 +148,10 @@ public class PstConverter {
     }
 
     /**
-     * Traverses all PSTFolders recursively, starting from the root PSTFolder, and 
-     * extracts all email messages in EML format to a directory on the file system.
-     * 
+     * Traverses all PSTFolders recursively, starting from the root PSTFolder,
+     * and extracts all email messages in EML format to a directory on the file
+     * system.
+     *
      * @param pstFolder
      * @param directory
      * @param path
@@ -157,7 +159,7 @@ public class PstConverter {
      * @return
      * @throws PSTException
      * @throws IOException
-     * @throws MessagingException 
+     * @throws MessagingException
      */
     int convertToEML(PSTFolder pstFolder, File directory, String path, Session session) throws PSTException, IOException, MessagingException {
         int messageCount = 0;
@@ -193,17 +195,17 @@ public class PstConverter {
     }
 
     /**
-     * Traverses all PSTFolders recursively, starting from the root PSTFolder, and 
-     * extracts all email messages to a mbox file.
-     * 
-     * @param pstFolder 
+     * Traverses all PSTFolders recursively, starting from the root PSTFolder,
+     * and extracts all email messages to a mbox file.
+     *
+     * @param pstFolder
      * @param mboxFolder
      * @param path
      * @param session
      * @return
      * @throws PSTException
      * @throws IOException
-     * @throws MessagingException 
+     * @throws MessagingException
      */
     int convertToMbox(PSTFolder pstFolder, Folder mboxFolder, String path, Session session) throws PSTException, IOException, MessagingException {
         int messageCount = 0;
@@ -214,9 +216,12 @@ public class PstConverter {
             while (child != null) {
                 PSTMessage pstMessage = (PSTMessage) child;
                 messages[0] = convertToMimeMessage(pstMessage, session);
-                mboxFolder.appendMessages(messages);
-
-                messageCount++;
+                try {
+                    mboxFolder.appendMessages(messages);
+                    messageCount++;
+                } catch (MessagingException ex) {
+                    logger.error("Failed to write to Mbox file. {}", ex.getMessage());
+                }
                 child = pstFolder.getNextChild();
             }
         }
@@ -240,14 +245,16 @@ public class PstConverter {
 
     /**
      * Converts a PSTMessage to MimeMessage.
-     * 
+     *
      * @param message The PSTMessage object.
      * @param session The java mail session object.
      * @return A new MimeMessage object.
      * @throws MessagingException
      * @throws IOException
-     * @throws PSTException 
-     * @see <a href="https://www.independentsoft.de/jpst/tutorial/exporttomimemessages.html">Export to MIME messages (.eml files)</a>
+     * @throws PSTException
+     * @see
+     * <a href="https://www.independentsoft.de/jpst/tutorial/exporttomimemessages.html">Export
+     * to MIME messages (.eml files)</a>
      */
     MimeMessage convertToMimeMessage(PSTMessage message, Session session) throws MessagingException, IOException, PSTException {
         MimeMessage mimeMessage = new MimeMessage(session);
@@ -271,7 +278,7 @@ public class PstConverter {
 
             String senderEmailAddress = message.getSenderEmailAddress();
             fromMailbox.setAddress(senderEmailAddress);
-            
+
             String senderName = message.getSenderName();
             if (senderName != null && !senderName.isEmpty()) {
                 fromMailbox.setPersonal(senderName);
