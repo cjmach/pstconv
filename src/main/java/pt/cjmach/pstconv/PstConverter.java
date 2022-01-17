@@ -310,22 +310,18 @@ public class PstConverter {
         MimeMultipart contentMultipart = new MimeMultipart();
 
         String messageBody = message.getBody();
-        boolean withoutBody = messageBody == null || messageBody.isEmpty();
-        if (!withoutBody) {
-            MimeBodyPart textBodyPart = new MimeBodyPart();
-            textBodyPart.setText(messageBody);
-            contentMultipart.addBodyPart(textBodyPart);
-        }
-
         String messageBodyHTML = message.getBodyHTML();
+        boolean withoutBody = messageBody == null || messageBody.isEmpty();
         boolean withoutBodyHTML = messageBodyHTML == null || messageBodyHTML.isEmpty();
         if (!withoutBodyHTML) {
             MimeBodyPart htmlBodyPart = new MimeBodyPart();
             htmlBodyPart.setDataHandler(new DataHandler(new ByteArrayDataSource(messageBodyHTML, "text/html")));
             contentMultipart.addBodyPart(htmlBodyPart);
-        }
-
-        if (withoutBody && withoutBodyHTML) {
+        } else if (!withoutBody) {
+            MimeBodyPart textBodyPart = new MimeBodyPart();
+            textBodyPart.setText(messageBody);
+            contentMultipart.addBodyPart(textBodyPart);
+        } else {
             MimeBodyPart textBodyPart = new MimeBodyPart();
             textBodyPart.setText("");
             textBodyPart.addHeaderLine("Content-Type: text/plain; charset=\"utf-8\"");
