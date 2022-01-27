@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.Properties;
+import java.util.regex.Pattern;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.mail.Folder;
@@ -62,6 +63,7 @@ import org.slf4j.LoggerFactory;
 public class PstConverter {
 
     private static final Logger logger = LoggerFactory.getLogger(PstConverter.class);
+    private static final Pattern FILENAME_PATTERN = Pattern.compile("[^\\p{ASCII}]");
 
     /**
      * Default constructor.
@@ -382,13 +384,17 @@ public class PstConverter {
             String fileName = descriptorIndex + "-NoSubject.eml";
             return fileName;
         }
+        
         StringBuilder builder = new StringBuilder();
         builder.append(descriptorIndex).append("-");
+        
         final char[] forbidden = {'\"', '*', '/', ':', '<', '>', '?', '\\', '|', 0x7F};
         for (int i = 0; i < subject.length(); i++) {
             char c = subject.charAt(i);
-            if (Arrays.binarySearch(forbidden, c) < 0) {
+            if (c >= 32 && c <= 126 && Arrays.binarySearch(forbidden, c) < 0) {
                 builder.append(c);
+            } else {
+                builder.append('_');
             }
         }
         builder.append(".eml");
