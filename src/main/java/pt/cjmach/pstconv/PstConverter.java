@@ -340,18 +340,9 @@ public class PstConverter {
                 byte[] data = getAttachmentBytes(attachment);
                 MimeBodyPart attachmentBodyPart = new MimeBodyPart();
 
-                String mimeTag = attachment.getMimeTag();
-                // mimeTag should contain a valid mime type, but sometimes it doesn't.
-                // To prevent throwing exceptions when the MimeMessage is validated, the
-                // mimeTag value is first checked with isMimeTypeKnown(). If it's not 
-                // known, the mime type is set to 'application/octet-stream.
-                if (mimeTag != null && !mimeTag.isEmpty() && isMimeTypeKnown(mimeTag)) {
-                    DataSource source = new ByteArrayDataSource(data, mimeTag);
-                    attachmentBodyPart.setDataHandler(new DataHandler(source));
-                } else {
-                    DataSource source = new ByteArrayDataSource(data, "application/octet-stream");
-                    attachmentBodyPart.setDataHandler(new DataHandler(source));
-                }
+                String mimeTag = getAttachmentMimeTag(attachment);
+                DataSource source = new ByteArrayDataSource(data, mimeTag);
+                attachmentBodyPart.setDataHandler(new DataHandler(source));
 
                 attachmentBodyPart.setContentID(attachment.getContentId());
 
@@ -427,6 +418,21 @@ public class PstConverter {
                 return result;
             }
         }
+    }
+
+    private static String getAttachmentMimeTag(PSTAttachment attachment) {
+        String mimeTag = attachment.getMimeTag();
+        // mimeTag should contain a valid mime type, but sometimes it doesn't.
+        // To prevent throwing exceptions when the MimeMessage is validated, the
+        // mimeTag value is first checked with isMimeTypeKnown(). If it's not 
+        // known, the mime type is set to 'application/octet-stream.
+        if (mimeTag == null || mimeTag.isEmpty()) {
+            return "application/octet-stream";
+        }
+        if (isMimeTypeKnown(mimeTag)) {
+            return mimeTag;
+        }
+        return "application/octet-stream";
     }
 
     private static String coalesce(String defaultValue, String... args) {
