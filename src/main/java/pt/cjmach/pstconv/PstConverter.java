@@ -262,7 +262,7 @@ public class PstConverter {
         MimeMessage mimeMessage = new MimeMessage(session);
 
         String messageHeaders = message.getTransportMessageHeaders();
-        if (messageHeaders != null) {
+        if (messageHeaders != null && !messageHeaders.isEmpty()) {
             InternetHeaders headers = new InternetHeaders(new ByteArrayInputStream(messageHeaders.getBytes(StandardCharsets.UTF_8)));
             headers.removeHeader("Content-Type");
 
