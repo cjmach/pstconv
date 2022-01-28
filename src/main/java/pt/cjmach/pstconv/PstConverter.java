@@ -306,6 +306,9 @@ public class PstConverter {
                 }
             }
         }
+        
+        // Add custom header to easily track the original message from OST/PST file.
+        mimeMessage.addHeader("X-Outlook-Descriptor-Id", Long.toString(message.getDescriptorNodeId()));
 
         MimeMultipart rootMultipart = new MimeMultipart();
         MimeMultipart contentMultipart = new MimeMultipart();
