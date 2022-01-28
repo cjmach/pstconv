@@ -49,6 +49,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 import net.fortuna.mstor.model.MStorStore;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
 import org.slf4j.Logger;
@@ -260,7 +261,7 @@ public class PstConverter {
         MimeMessage mimeMessage = new MimeMessage(session);
 
         String messageHeaders = message.getTransportMessageHeaders();
-        if (messageHeaders != null) {
+        if (messageHeaders != null && !messageHeaders.isEmpty()) {
             InternetHeaders headers = new InternetHeaders(new ByteArrayInputStream(messageHeaders.getBytes(StandardCharsets.UTF_8)));
             headers.removeHeader("Content-Type");
 
@@ -305,6 +306,9 @@ public class PstConverter {
                 }
             }
         }
+        
+        // Add custom header to easily track the original message from OST/PST file.
+        mimeMessage.addHeader("X-Outlook-Descriptor-Id", Long.toString(message.getDescriptorNodeId()));
 
         MimeMultipart rootMultipart = new MimeMultipart();
         MimeMultipart contentMultipart = new MimeMultipart();
@@ -340,18 +344,9 @@ public class PstConverter {
                 byte[] data = getAttachmentBytes(attachment);
                 MimeBodyPart attachmentBodyPart = new MimeBodyPart();
 
-                String mimeTag = attachment.getMimeTag();
-                // mimeTag should contain a valid mime type, but sometimes it doesn't.
-                // To prevent throwing exceptions when the MimeMessage is validated, the
-                // mimeTag value is first checked with isMimeTypeKnown(). If it's not 
-                // known, the mime type is set to 'application/octet-stream.
-                if (mimeTag != null && !mimeTag.isEmpty() && isMimeTypeKnown(mimeTag)) {
-                    DataSource source = new ByteArrayDataSource(data, mimeTag);
-                    attachmentBodyPart.setDataHandler(new DataHandler(source));
-                } else {
-                    DataSource source = new ByteArrayDataSource(data, "application/octet-stream");
-                    attachmentBodyPart.setDataHandler(new DataHandler(source));
-                }
+                String mimeTag = getAttachmentMimeTag(attachment);
+                DataSource source = new ByteArrayDataSource(data, mimeTag);
+                attachmentBodyPart.setDataHandler(new DataHandler(source));
 
                 attachmentBodyPart.setContentID(attachment.getContentId());
 
@@ -391,13 +386,18 @@ public class PstConverter {
             String fileName = descriptorIndex + "-NoSubject.eml";
             return fileName;
         }
+        
         StringBuilder builder = new StringBuilder();
         builder.append(descriptorIndex).append("-");
-        final char[] forbidden = {'\"', '*', '/', ':', '<', '>', '?', '\\', '|', 0x7F};
-        for (int i = 0; i < subject.length(); i++) {
-            char c = subject.charAt(i);
-            if (Arrays.binarySearch(forbidden, c) < 0) {
+        
+        String normalizedSubject = StringUtils.stripAccents(subject);
+        final char[] forbidden = {'\"', '*', '/', ':', '<', '>', '?', '\\', '|'};
+        for (int i = 0; i < normalizedSubject.length(); i++) {
+            char c = normalizedSubject.charAt(i);
+            if (c >= 32 && c <= 126 && Arrays.binarySearch(forbidden, c) < 0) {
                 builder.append(c);
+            } else {
+                builder.append('_');
             }
         }
         builder.append(".eml");
@@ -427,6 +427,21 @@ public class PstConverter {
                 return result;
             }
         }
+    }
+
+    private static String getAttachmentMimeTag(PSTAttachment attachment) {
+        String mimeTag = attachment.getMimeTag();
+        // mimeTag should contain a valid mime type, but sometimes it doesn't.
+        // To prevent throwing exceptions when the MimeMessage is validated, the
+        // mimeTag value is first checked with isMimeTypeKnown(). If it's not 
+        // known, the mime type is set to 'application/octet-stream.
+        if (mimeTag == null || mimeTag.isEmpty()) {
+            return "application/octet-stream";
+        }
+        if (isMimeTypeKnown(mimeTag)) {
+            return mimeTag;
+        }
+        return "application/octet-stream";
     }
 
     private static String coalesce(String defaultValue, String... args) {
