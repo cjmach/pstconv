@@ -276,14 +276,16 @@ public class PstConverter {
     void convertMessageHeaders(PSTMessage message, MimeMessage mimeMessage, Charset charset) throws IOException, MessagingException, PSTException {
         String messageHeaders = message.getTransportMessageHeaders();
         if (messageHeaders != null && !messageHeaders.isEmpty()) {
-            InternetHeaders headers = new InternetHeaders(new ByteArrayInputStream(messageHeaders.getBytes(charset)));
-            headers.removeHeader("Content-Type");
-            
-            Enumeration<Header> allHeaders = headers.getAllHeaders();
-            
-            while (allHeaders.hasMoreElements()) {
-                Header header = allHeaders.nextElement();
-                mimeMessage.addHeader(header.getName(), header.getValue());
+            try (InputStream headersStream = new ByteArrayInputStream(messageHeaders.getBytes(charset))) {
+                InternetHeaders headers = new InternetHeaders(headersStream);
+                headers.removeHeader("Content-Type");
+
+                Enumeration<Header> allHeaders = headers.getAllHeaders();
+
+                while (allHeaders.hasMoreElements()) {
+                    Header header = allHeaders.nextElement();
+                    mimeMessage.addHeader(header.getName(), header.getValue());
+                }
             }
         } else {
             mimeMessage.setSubject(message.getSubject());
