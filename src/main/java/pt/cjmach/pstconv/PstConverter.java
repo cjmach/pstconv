@@ -328,13 +328,12 @@ public class PstConverter {
         MimeMultipart contentMultipart = new MimeMultipart();
         String messageBody = message.getBody();
         String messageBodyHTML = message.getBodyHTML();
-        boolean withoutBody = messageBody == null || messageBody.isEmpty();
-        boolean withoutBodyHTML = messageBodyHTML == null || messageBodyHTML.isEmpty();
-        if (!withoutBodyHTML) {
+        
+        if (messageBodyHTML != null && !messageBodyHTML.isEmpty()) {
             MimeBodyPart htmlBodyPart = new MimeBodyPart();
             htmlBodyPart.setDataHandler(new DataHandler(new ByteArrayDataSource(messageBodyHTML, "text/html")));
             contentMultipart.addBodyPart(htmlBodyPart);
-        } else if (!withoutBody) {
+        } else if (messageBody != null && !messageBody.isEmpty()) {
             MimeBodyPart textBodyPart = new MimeBodyPart();
             textBodyPart.setText(messageBody);
             contentMultipart.addBodyPart(textBodyPart);
