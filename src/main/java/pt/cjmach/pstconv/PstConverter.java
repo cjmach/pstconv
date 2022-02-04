@@ -286,6 +286,10 @@ public class PstConverter {
                     Header header = allHeaders.nextElement();
                     mimeMessage.addHeader(header.getName(), header.getValue());
                 }
+                String dateHeader = mimeMessage.getHeader("Date", null);
+                if (dateHeader == null || dateHeader.isEmpty()) {
+                    mimeMessage.setSentDate(message.getMessageDeliveryTime());
+                }
             }
         } else {
             mimeMessage.setSubject(message.getSubject());
