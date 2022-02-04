@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Properties;
 import javax.activation.DataHandler;
@@ -43,6 +44,7 @@ import javax.mail.Session;
 import javax.mail.URLName;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.InternetHeaders;
+import javax.mail.internet.MailDateFormat;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
@@ -62,6 +64,7 @@ import org.slf4j.LoggerFactory;
 public class PstConverter {
 
     private static final Logger logger = LoggerFactory.getLogger(PstConverter.class);
+    private static final MailDateFormat RFC8822_DATE_FORMAT = new MailDateFormat();
 
     /**
      * Default constructor.
@@ -288,12 +291,17 @@ public class PstConverter {
                 }
                 String dateHeader = mimeMessage.getHeader("Date", null);
                 if (dateHeader == null || dateHeader.isEmpty()) {
-                    mimeMessage.setSentDate(message.getMessageDeliveryTime());
+                    mimeMessage.addHeader("Date", RFC8822_DATE_FORMAT.format(message.getMessageDeliveryTime()));
                 }
             }
         } else {
             mimeMessage.setSubject(message.getSubject());
-            mimeMessage.setSentDate(message.getClientSubmitTime());
+            Date sentDate = message.getClientSubmitTime();
+            if (sentDate == null) {
+                mimeMessage.addHeader("Date", "");
+            } else {
+                mimeMessage.setSentDate(sentDate);
+            }
             
             InternetAddress fromMailbox = new InternetAddress();
             
