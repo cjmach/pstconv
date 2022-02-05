@@ -30,8 +30,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.Properties;
 import javax.activation.DataHandler;
@@ -44,6 +44,7 @@ import javax.mail.Session;
 import javax.mail.URLName;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.InternetHeaders;
+import javax.mail.internet.MailDateFormat;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
@@ -63,6 +64,7 @@ import org.slf4j.LoggerFactory;
 public class PstConverter {
 
     private static final Logger logger = LoggerFactory.getLogger(PstConverter.class);
+    private static final MailDateFormat RFC8822_DATE_FORMAT = new MailDateFormat();
 
     /**
      * Default constructor.
@@ -95,7 +97,7 @@ public class PstConverter {
         if (format == null) {
             throw new IllegalArgumentException("format is null.");
         }
-        Charset.forName(encoding); // throws UnsupportedCharsetException if encoding is invalid
+        Charset charset = Charset.forName(encoding); // throws UnsupportedCharsetException if encoding is invalid
 
         PSTFile pstFile = new PSTFile(inputFile);
 
@@ -111,7 +113,7 @@ public class PstConverter {
                 Session session = Session.getDefaultInstance(sessionProps);
                 PSTFolder pstRootFolder = pstFile.getRootFolder();
                 try {
-                    messageCount = convertToEML(pstRootFolder, outputDirectory, "\\", session);
+                    messageCount = convertToEML(pstRootFolder, outputDirectory, "\\", session, charset);
                 } catch (PSTException | MessagingException | IOException ex) {
                     logger.error("Failed to convert PSTFile object for file {}. {}", inputFile, ex.getMessage());
                 }
@@ -132,7 +134,7 @@ public class PstConverter {
                     mboxStore.connect();
                     Folder mboxRootFolder = mboxStore.getDefaultFolder();
                     PSTFolder pstRootFolder = pstFile.getRootFolder();
-                    messageCount = convertToMbox(pstRootFolder, mboxRootFolder, "\\", session);
+                    messageCount = convertToMbox(pstRootFolder, mboxRootFolder, "\\", session, charset);
                 } catch (PSTException | MessagingException | IOException ex) {
                     logger.error("Failed to convert PSTFile object for file {}. {}", inputFile, ex.getMessage());
                 } finally {
@@ -157,18 +159,19 @@ public class PstConverter {
      * @param directory
      * @param path
      * @param session
+     * @param charset 
      * @return
      * @throws PSTException
      * @throws IOException
      * @throws MessagingException
      */
-    int convertToEML(PSTFolder pstFolder, File directory, String path, Session session) throws PSTException, IOException, MessagingException {
+    int convertToEML(PSTFolder pstFolder, File directory, String path, Session session, Charset charset) throws PSTException, IOException, MessagingException {
         int messageCount = 0;
         if (pstFolder.getContentCount() > 0) {
             PSTObject child = pstFolder.getNextChild();
             while (child != null) {
                 PSTMessage pstMessage = (PSTMessage) child;
-                MimeMessage message = convertToMimeMessage(pstMessage, session);
+                MimeMessage message = convertToMimeMessage(pstMessage, session, charset);
 
                 String fileName = getEMLFileName(pstMessage.getSubject(), pstMessage.getDescriptorNodeId());
                 File outputFile = new File(directory, fileName);
@@ -189,7 +192,7 @@ public class PstConverter {
                     logger.warn("Failed to create subdirectory {}", subPath);
                     continue;
                 }
-                messageCount += convertToEML(pstSubFolder, subDirectory, subPath, session);
+                messageCount += convertToEML(pstSubFolder, subDirectory, subPath, session, charset);
             }
         }
         return messageCount;
@@ -203,12 +206,13 @@ public class PstConverter {
      * @param mboxFolder
      * @param path
      * @param session
+     * @param charset
      * @return
      * @throws PSTException
      * @throws IOException
      * @throws MessagingException
      */
-    int convertToMbox(PSTFolder pstFolder, Folder mboxFolder, String path, Session session) throws PSTException, IOException, MessagingException {
+    int convertToMbox(PSTFolder pstFolder, Folder mboxFolder, String path, Session session, Charset charset) throws PSTException, IOException, MessagingException {
         int messageCount = 0;
         if (pstFolder.getContentCount() > 0) {
             PSTObject child = pstFolder.getNextChild();
@@ -216,7 +220,7 @@ public class PstConverter {
             MimeMessage[] messages = new MimeMessage[1];
             while (child != null) {
                 PSTMessage pstMessage = (PSTMessage) child;
-                messages[0] = convertToMimeMessage(pstMessage, session);
+                messages[0] = convertToMimeMessage(pstMessage, session, charset);
                 try {
                     mboxFolder.appendMessages(messages);
                     messageCount++;
@@ -237,7 +241,7 @@ public class PstConverter {
                     }
                 }
                 mboxSubFolder.open(Folder.READ_WRITE);
-                messageCount += convertToMbox(pstSubFolder, mboxSubFolder, subPath, session);
+                messageCount += convertToMbox(pstSubFolder, mboxSubFolder, subPath, session, charset);
                 mboxSubFolder.close(false);
             }
         }
@@ -249,6 +253,7 @@ public class PstConverter {
      *
      * @param message The PSTMessage object.
      * @param session The java mail session object.
+     * @param charset 
      * @return A new MimeMessage object.
      * @throws MessagingException
      * @throws IOException
@@ -257,38 +262,61 @@ public class PstConverter {
      * <a href="https://www.independentsoft.de/jpst/tutorial/exporttomimemessages.html">Export
      * to MIME messages (.eml files)</a>
      */
-    MimeMessage convertToMimeMessage(PSTMessage message, Session session) throws MessagingException, IOException, PSTException {
+    MimeMessage convertToMimeMessage(PSTMessage message, Session session, Charset charset) throws MessagingException, IOException, PSTException {
         MimeMessage mimeMessage = new MimeMessage(session);
 
+        convertMessageHeaders(message, mimeMessage, charset);
+        // Add custom header to easily track the original message from OST/PST file.
+        mimeMessage.addHeader("X-Outlook-Descriptor-Id", Long.toString(message.getDescriptorNodeId()));
+
+        MimeMultipart rootMultipart = new MimeMultipart();
+        convertMessageBody(message, rootMultipart);
+        convertAttachments(message, rootMultipart);
+        mimeMessage.setContent(rootMultipart);
+        return mimeMessage;
+    }
+    
+    void convertMessageHeaders(PSTMessage message, MimeMessage mimeMessage, Charset charset) throws IOException, MessagingException, PSTException {
         String messageHeaders = message.getTransportMessageHeaders();
         if (messageHeaders != null && !messageHeaders.isEmpty()) {
-            InternetHeaders headers = new InternetHeaders(new ByteArrayInputStream(messageHeaders.getBytes(StandardCharsets.UTF_8)));
-            headers.removeHeader("Content-Type");
+            try (InputStream headersStream = new ByteArrayInputStream(messageHeaders.getBytes(charset))) {
+                InternetHeaders headers = new InternetHeaders(headersStream);
+                headers.removeHeader("Content-Type");
 
-            Enumeration<Header> allHeaders = headers.getAllHeaders();
+                Enumeration<Header> allHeaders = headers.getAllHeaders();
 
-            while (allHeaders.hasMoreElements()) {
-                Header header = allHeaders.nextElement();
-                mimeMessage.addHeader(header.getName(), header.getValue());
+                while (allHeaders.hasMoreElements()) {
+                    Header header = allHeaders.nextElement();
+                    mimeMessage.addHeader(header.getName(), header.getValue());
+                }
+                String dateHeader = mimeMessage.getHeader("Date", null);
+                if (dateHeader == null || dateHeader.isEmpty()) {
+                    mimeMessage.addHeader("Date", RFC8822_DATE_FORMAT.format(message.getMessageDeliveryTime()));
+                }
             }
         } else {
             mimeMessage.setSubject(message.getSubject());
-            mimeMessage.setSentDate(message.getClientSubmitTime());
-
+            Date sentDate = message.getClientSubmitTime();
+            if (sentDate == null) {
+                mimeMessage.addHeader("Date", "");
+            } else {
+                mimeMessage.setSentDate(sentDate);
+            }
+            
             InternetAddress fromMailbox = new InternetAddress();
-
+            
             String senderEmailAddress = message.getSenderEmailAddress();
             fromMailbox.setAddress(senderEmailAddress);
-
+            
             String senderName = message.getSenderName();
             if (senderName != null && !senderName.isEmpty()) {
                 fromMailbox.setPersonal(senderName);
             } else {
                 fromMailbox.setPersonal(senderEmailAddress);
             }
-
+            
             mimeMessage.setFrom(fromMailbox);
-
+            
             for (int i = 0; i < message.getNumberOfRecipients(); i++) {
                 PSTRecipient recipient = message.getRecipient(i);
                 switch (recipient.getRecipientType()) {
@@ -306,22 +334,18 @@ public class PstConverter {
                 }
             }
         }
-        
-        // Add custom header to easily track the original message from OST/PST file.
-        mimeMessage.addHeader("X-Outlook-Descriptor-Id", Long.toString(message.getDescriptorNodeId()));
+    }
 
-        MimeMultipart rootMultipart = new MimeMultipart();
+    void convertMessageBody(PSTMessage message, MimeMultipart rootMultipart) throws IOException, MessagingException {
         MimeMultipart contentMultipart = new MimeMultipart();
-
         String messageBody = message.getBody();
         String messageBodyHTML = message.getBodyHTML();
-        boolean withoutBody = messageBody == null || messageBody.isEmpty();
-        boolean withoutBodyHTML = messageBodyHTML == null || messageBodyHTML.isEmpty();
-        if (!withoutBodyHTML) {
+        
+        if (messageBodyHTML != null && !messageBodyHTML.isEmpty()) {
             MimeBodyPart htmlBodyPart = new MimeBodyPart();
             htmlBodyPart.setDataHandler(new DataHandler(new ByteArrayDataSource(messageBodyHTML, "text/html")));
             contentMultipart.addBodyPart(htmlBodyPart);
-        } else if (!withoutBody) {
+        } else if (messageBody != null && !messageBody.isEmpty()) {
             MimeBodyPart textBodyPart = new MimeBodyPart();
             textBodyPart.setText(messageBody);
             contentMultipart.addBodyPart(textBodyPart);
@@ -332,11 +356,12 @@ public class PstConverter {
             textBodyPart.addHeaderLine("Content-Transfer-Encoding: quoted-printable");
             contentMultipart.addBodyPart(textBodyPart);
         }
-
         MimeBodyPart contentBodyPart = new MimeBodyPart();
         contentBodyPart.setContent(contentMultipart);
-
         rootMultipart.addBodyPart(contentBodyPart);
+    }
+
+    void convertAttachments(PSTMessage message, MimeMultipart rootMultipart) throws MessagingException, PSTException, IOException {
         for (int i = 0; i < message.getNumberOfAttachments(); i++) {
             PSTAttachment attachment = message.getAttachment(i);
 
@@ -356,12 +381,9 @@ public class PstConverter {
                 rootMultipart.addBodyPart(attachmentBodyPart);
             }
         }
-
-        mimeMessage.setContent(rootMultipart);
-        return mimeMessage;
     }
 
-    private static boolean isMimeTypeKnown(String mime) {
+    static boolean isMimeTypeKnown(String mime) {
         MimeTypes types = MimeTypes.getDefaultMimeTypes();
         try {
             types.forName(mime);
@@ -381,7 +403,7 @@ public class PstConverter {
      * e-mail message.
      * @return A valid file name.
      */
-    private static String getEMLFileName(String subject, long descriptorIndex) {
+    static String getEMLFileName(String subject, long descriptorIndex) {
         if (subject == null || subject.isEmpty()) {
             String fileName = descriptorIndex + "-NoSubject.eml";
             return fileName;
@@ -414,7 +436,7 @@ public class PstConverter {
      * @throws IOException If an error occurs when reading bytes from the input
      * stream.
      */
-    private static byte[] getAttachmentBytes(PSTAttachment attachment) throws PSTException, IOException {
+    static byte[] getAttachmentBytes(PSTAttachment attachment) throws PSTException, IOException {
         try (InputStream input = attachment.getFileInputStream()) {
             int nread;
             byte[] buffer = new byte[4096];
@@ -429,7 +451,7 @@ public class PstConverter {
         }
     }
 
-    private static String getAttachmentMimeTag(PSTAttachment attachment) {
+    static String getAttachmentMimeTag(PSTAttachment attachment) {
         String mimeTag = attachment.getMimeTag();
         // mimeTag should contain a valid mime type, but sometimes it doesn't.
         // To prevent throwing exceptions when the MimeMessage is validated, the
@@ -444,7 +466,7 @@ public class PstConverter {
         return "application/octet-stream";
     }
 
-    private static String coalesce(String defaultValue, String... args) {
+    static String coalesce(String defaultValue, String... args) {
         for (String arg : args) {
             if (arg != null) {
                 return arg;
