@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
 public class PstConverter {
 
     private static final Logger logger = LoggerFactory.getLogger(PstConverter.class);
-    private static final MailDateFormat RFC8822_DATE_FORMAT = new MailDateFormat();
+    private static final MailDateFormat RFC822_DATE_FORMAT = new MailDateFormat();
 
     /**
      * Default constructor.
@@ -291,7 +291,7 @@ public class PstConverter {
                 }
                 String dateHeader = mimeMessage.getHeader("Date", null);
                 if (dateHeader == null || dateHeader.isEmpty()) {
-                    mimeMessage.addHeader("Date", RFC8822_DATE_FORMAT.format(message.getMessageDeliveryTime()));
+                    mimeMessage.addHeader("Date", RFC822_DATE_FORMAT.format(message.getMessageDeliveryTime()));
                 }
             }
         } else {
