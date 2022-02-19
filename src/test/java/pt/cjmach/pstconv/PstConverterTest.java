@@ -17,8 +17,6 @@ package pt.cjmach.pstconv;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.nio.charset.IllegalCharsetNameException;
-import java.nio.charset.UnsupportedCharsetException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
