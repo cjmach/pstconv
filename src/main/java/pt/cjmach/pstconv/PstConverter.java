@@ -49,7 +49,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
-import net.fortuna.mstor.model.MStorStore;
+import net.fortuna.mstor.MStorStore;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;

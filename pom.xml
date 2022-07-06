@@ -3,15 +3,15 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>pt.cjmach</groupId>
     <artifactId>pstconv</artifactId>
-    <version>0.5.0-SNAPSHOT</version>
+    <version>0.5.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>pstconv</name>
     <description>Command line tool to convert Outlook OST/PST files to EML/MBOX format</description>
     
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>11</maven.compiler.source>
-        <maven.compiler.target>11</maven.compiler.target>
+        <maven.compiler.source>1.8</maven.compiler.source>
+        <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
     
     <scm>
@@ -36,7 +36,7 @@
         <dependency>
             <groupId>org.mnode.mstor</groupId>
             <artifactId>mstor</artifactId>
-            <version>1.0.1</version>
+            <version>1.0.0</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
