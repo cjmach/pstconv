@@ -1,12 +1,13 @@
 # pstconv
 
 A java command line tool to convert proprietary Microsoft Outlook OST/PST files 
-to EML or MBOX format. OST/PST content is parsed and extracted with [java-libpst](https://github.com/rjohnsondev/java-libpst)
+to EML or MBOX format, even if the file is password protected. OST/PST content is 
+parsed and extracted with [java-libpst](https://github.com/rjohnsondev/java-libpst)
 library.
 
 # Requirements
 
-- Java Runtime Environment 11
+- Java Runtime Environment 8
 
 # Usage
 
@@ -28,7 +29,7 @@ usage: java -jar pstconv.jar [OPTIONS]
 
 To build this project you need:
 
-- Java Development Kit 11
+- Java Development Kit 8
 - Apache Maven 3.6.x
 
 Assuming all the tools can be found on the PATH, simply go to the project 
