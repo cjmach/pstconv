@@ -82,9 +82,10 @@ public class PstConverter {
      * @param encoding The charset encoding to use for character data.
      *
      * @throws PSTException
+     * @throws MessagingException
      * @throws IOException
      */
-    public void convert(File inputFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, IOException {
+    public void convert(File inputFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, MessagingException, IOException {
         if (!inputFile.exists()) {
             throw new FileNotFoundException(String.format("No such file: %s.", inputFile.getAbsolutePath()));
         }
@@ -116,6 +117,7 @@ public class PstConverter {
                     messageCount = convertToEML(pstRootFolder, outputDirectory, "\\", session, charset);
                 } catch (PSTException | MessagingException | IOException ex) {
                     logger.error("Failed to convert PSTFile object for file {}. {}", inputFile, ex.getMessage());
+                    throw ex;
                 }
                 break;
             }
@@ -137,6 +139,7 @@ public class PstConverter {
                     messageCount = convertToMbox(pstRootFolder, mboxRootFolder, "\\", session, charset);
                 } catch (PSTException | MessagingException | IOException ex) {
                     logger.error("Failed to convert PSTFile object for file {}. {}", inputFile, ex.getMessage());
+                    throw ex;
                 } finally {
                     try {
                         mboxStore.close();
