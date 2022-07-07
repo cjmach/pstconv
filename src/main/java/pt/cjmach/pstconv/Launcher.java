@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.concurrent.Callable;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
+import javax.mail.MessagingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
@@ -84,8 +85,7 @@ public class Launcher implements Callable<Integer> {
         PstConverter converter = new PstConverter();
         try {
             converter.convert(inputFile, outputDirectory, outputFormat, encoding);
-        } catch (PSTException | IOException ex) {
-            logger.error("Failed to convert input file {}. {}", inputFile, ex.getMessage());
+        } catch (PSTException | MessagingException | IOException ex) {
             return 1;
         }
         // The application is not finished if the mstor storage provider is used. It 
