@@ -71,23 +71,23 @@ public class PstConverterTest {
         assertThrows(PSTException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
     }
     
-//    @Test
-//    public void testConvertOutputFormatNull() {
-//        File inputFile = new File("src/test/resources/pt/cjmach/pstconv/textfile.txt");
-//        File outputDirectory = new File(".");
-//        OutputFormat format = null;
-//        String encoding = "UTF-8";
-//        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
-//        assertEquals("format is null.", iae.getMessage());
-//    }
+    @Test
+    public void testConvertOutputFormatNull() {
+        File inputFile = new File("src/test/resources/pt/cjmach/pstconv/outlook.pst");
+        File outputDirectory = new File(".");
+        OutputFormat format = null;
+        String encoding = "UTF-8";
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
+        assertEquals("format is null.", iae.getMessage());
+    }
     
-//    @Test
-//    public void testConvertEncodingInvalid() {
-//        File inputFile = new File("src/test/resources/pt/cjmach/pstconv/textfile.txt");
-//        File outputDirectory = new File(".");
-//        OutputFormat format = OutputFormat.EML;
-//        String encoding = "invalid encoding";
-//        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
-//        assertEquals(encoding, iae.getMessage());
-//    }
+    @Test
+    public void testConvertEncodingInvalid() {
+        File inputFile = new File("src/test/resources/pt/cjmach/pstconv/outlook.pst");
+        File outputDirectory = new File(".");
+        OutputFormat format = OutputFormat.EML;
+        String encoding = "invalid encoding";
+        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
+        assertEquals(encoding, iae.getMessage());
+    }
 }
