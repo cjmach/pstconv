@@ -86,22 +86,33 @@ public class PstConverter {
      * @throws IOException
      */
     public void convert(File inputFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, MessagingException, IOException {
-        if (!inputFile.exists()) {
-            throw new FileNotFoundException(String.format("No such file: %s.", inputFile.getAbsolutePath()));
-        }
-        if (!inputFile.isFile()) {
-            throw new IllegalArgumentException(String.format("Not a file: %s.", inputFile.getAbsolutePath()));
-        }
+        PSTFile pstFile = new PSTFile(inputFile); // throws FileNotFoundException is file doesn't exist.
+        convert(pstFile, outputDirectory, format, encoding);
+    }
+    
+    /**
+     * Converts an Outlook OST/PST file to MBox or EML format.
+     *
+     * @param pstFile The input PST file.
+     * @param outputDirectory The directory where the email messages are
+     * extracted to and saved.
+     * @param format The output format (MBOX or EML).
+     * @param encoding The charset encoding to use for character data.
+     *
+     * @throws PSTException
+     * @throws MessagingException
+     * @throws IOException
+     */
+    public void convert(PSTFile pstFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, MessagingException, IOException {
         if (outputDirectory.exists() && !outputDirectory.isDirectory()) {
             throw new IllegalArgumentException(String.format("Not a directory: %s.", outputDirectory.getAbsolutePath()));
         }
         if (format == null) {
             throw new IllegalArgumentException("format is null.");
         }
+        
         Charset charset = Charset.forName(encoding); // throws UnsupportedCharsetException if encoding is invalid
-
-        PSTFile pstFile = new PSTFile(inputFile);
-
+        
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
         System.setProperty("mail.mime.address.strict", "false");
         int messageCount = 0;
@@ -116,7 +127,7 @@ public class PstConverter {
                 try {
                     messageCount = convertToEML(pstRootFolder, outputDirectory, "\\", session, charset);
                 } catch (PSTException | MessagingException | IOException ex) {
-                    logger.error("Failed to convert PSTFile object for file {}. {}", inputFile, ex.getMessage());
+                    logger.error("Failed to convert PSTFile object for file {}. {}", pstFile.getFileHandle(), ex.getMessage());
                     throw ex;
                 }
                 break;
@@ -138,7 +149,7 @@ public class PstConverter {
                     PSTFolder pstRootFolder = pstFile.getRootFolder();
                     messageCount = convertToMbox(pstRootFolder, mboxRootFolder, "\\", session, charset);
                 } catch (PSTException | MessagingException | IOException ex) {
-                    logger.error("Failed to convert PSTFile object for file {}. {}", inputFile, ex.getMessage());
+                    logger.error("Failed to convert PSTFile object for file {}. {}", pstFile.getFileHandle(), ex.getMessage());
                     throw ex;
                 } finally {
                     try {
