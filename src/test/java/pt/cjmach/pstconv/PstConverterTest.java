@@ -15,6 +15,7 @@
  */
 package pt.cjmach.pstconv;
 
+import com.pff.PSTException;
 import java.io.File;
 import java.io.FileNotFoundException;
 import org.junit.jupiter.api.AfterEach;
@@ -49,10 +50,7 @@ public class PstConverterTest {
         File outputDirectory = new File(".");
         OutputFormat format = OutputFormat.EML;
         String encoding = "UTF-8";
-        FileNotFoundException fnfe = assertThrows(FileNotFoundException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
-        assertEquals("No such file: " + fileName + ".", fnfe.getMessage());
-        
-        
+        assertThrows(FileNotFoundException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
     }
     
     @Test
@@ -61,8 +59,7 @@ public class PstConverterTest {
         File outputDirectory = new File(".");
         OutputFormat format = OutputFormat.EML;
         String encoding = "UTF-8";
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
-        assertEquals("Not a file: " + inputFile.getAbsolutePath() + ".", iae.getMessage());
+        assertThrows(FileNotFoundException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
     }
     
     @Test
@@ -71,13 +68,12 @@ public class PstConverterTest {
         File outputDirectory = new File("src/test/resources/pt/cjmach/pstconv/textfile.txt");
         OutputFormat format = OutputFormat.EML;
         String encoding = "UTF-8";
-        IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
-        assertEquals("Not a directory: " + inputFile.getAbsolutePath() + ".", iae.getMessage());
+        assertThrows(PSTException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
     }
     
     @Test
     public void testConvertOutputFormatNull() {
-        File inputFile = new File("src/test/resources/pt/cjmach/pstconv/textfile.txt");
+        File inputFile = new File("src/test/resources/pt/cjmach/pstconv/outlook.pst");
         File outputDirectory = new File(".");
         OutputFormat format = null;
         String encoding = "UTF-8";
@@ -87,7 +83,7 @@ public class PstConverterTest {
     
     @Test
     public void testConvertEncodingInvalid() {
-        File inputFile = new File("src/test/resources/pt/cjmach/pstconv/textfile.txt");
+        File inputFile = new File("src/test/resources/pt/cjmach/pstconv/outlook.pst");
         File outputDirectory = new File(".");
         OutputFormat format = OutputFormat.EML;
         String encoding = "invalid encoding";
