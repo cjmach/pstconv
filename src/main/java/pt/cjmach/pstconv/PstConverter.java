@@ -79,14 +79,15 @@ public class PstConverter {
      * extracted to and saved.
      * @param format The output format (MBOX or EML).
      * @param encoding The charset encoding to use for character data.
+     * @return number of successfully converted messages.
      *
      * @throws PSTException
      * @throws MessagingException
      * @throws IOException
      */
-    public void convert(File inputFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, MessagingException, IOException {
+    public int convert(File inputFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, MessagingException, IOException {
         PSTFile pstFile = new PSTFile(inputFile); // throws FileNotFoundException is file doesn't exist.
-        convert(pstFile, outputDirectory, format, encoding);
+        return convert(pstFile, outputDirectory, format, encoding);
     }
     
     /**
@@ -97,12 +98,13 @@ public class PstConverter {
      * extracted to and saved.
      * @param format The output format (MBOX or EML).
      * @param encoding The charset encoding to use for character data.
+     * @return number of successfully converted messages.
      *
      * @throws PSTException
      * @throws MessagingException
      * @throws IOException
      */
-    public void convert(PSTFile pstFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, MessagingException, IOException {
+    public int convert(PSTFile pstFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, MessagingException, IOException {
         if (outputDirectory.exists() && !outputDirectory.isDirectory()) {
             throw new IllegalArgumentException(String.format("Not a directory: %s.", outputDirectory.getAbsolutePath()));
         }
@@ -161,7 +163,7 @@ public class PstConverter {
                 break;
             }
         }
-        logger.info("Finished! Converted {} messages.", messageCount);
+        return messageCount;
     }
 
     /**
