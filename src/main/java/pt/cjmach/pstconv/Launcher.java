@@ -57,7 +57,7 @@ public class Launcher implements Callable<Integer> {
      */
     @Option(names = {"-f", "--format"}, paramLabel = "FORMAT", defaultValue = "EML",
             description = "Convert input file to one of the following formats: ${COMPLETION-CANDIDATES}. Default is ${DEFAULT-VALUE}.")
-    private OutputFormat outputFormat;
+    private MailMessageFormat outputFormat;
     /**
      * 
      */

@@ -91,7 +91,7 @@ public class PstConverter {
      * @return A set with all the found message ids.
      * @throws MessagingException
      */
-    public Set<Long> extractDescriptorIds(File directory, OutputFormat format, String encoding) throws MessagingException {
+    public Set<Long> extractDescriptorIds(File directory, MailMessageFormat format, String encoding) throws MessagingException {
         if (!directory.exists()) {
             throw new IllegalArgumentException(String.format("Inexistent directory: %s", directory.getAbsolutePath()));
         }
@@ -198,7 +198,7 @@ public class PstConverter {
      * @throws MessagingException
      * @throws IOException
      */
-    public int convert(File inputFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, MessagingException, IOException {
+    public int convert(File inputFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
         PSTFile pstFile = new PSTFile(inputFile); // throws FileNotFoundException is file doesn't exist.
         return convert(pstFile, outputDirectory, format, encoding);
     }
@@ -217,7 +217,7 @@ public class PstConverter {
      * @throws MessagingException
      * @throws IOException
      */
-    public int convert(PSTFile pstFile, File outputDirectory, OutputFormat format, String encoding) throws PSTException, MessagingException, IOException {
+    public int convert(PSTFile pstFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
         if (outputDirectory.exists() && !outputDirectory.isDirectory()) {
             throw new IllegalArgumentException(String.format("Not a directory: %s.", outputDirectory.getAbsolutePath()));
         }

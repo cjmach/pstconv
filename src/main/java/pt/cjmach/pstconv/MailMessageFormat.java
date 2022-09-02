@@ -19,13 +19,13 @@ package pt.cjmach.pstconv;
  *
  * @author cmachado
  */
-public enum OutputFormat {
+public enum MailMessageFormat {
     MBOX("mbox"),
     EML("eml");
 
     public final String format;
 
-    private OutputFormat(String format) {
+    private MailMessageFormat(String format) {
         this.format = format;
     }
     
@@ -34,7 +34,7 @@ public enum OutputFormat {
      * @return 
      */
     public static String[] getFormats() {
-        OutputFormat[] values = values();
+        MailMessageFormat[] values = values();
         String[] formats = new String[values.length];
         for (int i = 0; i < values.length; i++) {
             formats[i] = values[i].format;
@@ -47,9 +47,9 @@ public enum OutputFormat {
      * @param format
      * @return 
      */
-    public static OutputFormat valueOfFormat(String format) {
+    public static MailMessageFormat valueOfFormat(String format) {
         if (format == null) return null;
-        for (OutputFormat e : values()) {
+        for (MailMessageFormat e : values()) {
             if (e.format.equals(format)) {
                 return e;
             }
