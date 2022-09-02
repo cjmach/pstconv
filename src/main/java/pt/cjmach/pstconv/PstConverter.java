@@ -15,6 +15,7 @@
  */
 package pt.cjmach.pstconv;
 
+import pt.cjmach.pstconv.mail.EmlStore;
 import com.pff.PSTAttachment;
 import com.pff.PSTException;
 import com.pff.PSTFile;
@@ -25,12 +26,9 @@ import com.pff.PSTRecipient;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.HashSet;
@@ -43,6 +41,7 @@ import javax.mail.Header;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Session;
+import javax.mail.Store;
 import javax.mail.URLName;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.InternetHeaders;
@@ -52,7 +51,6 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 import net.fortuna.mstor.MStorStore;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
 import org.slf4j.Logger;
@@ -72,7 +70,7 @@ public class PstConverter {
      * easily trace back the original message from OST/PST file.
      */
     public static final String DESCRIPTOR_ID_HEADER = "X-Outlook-Descriptor-Id";
-    private static final String EML_FILE_EXTENSION = ".eml";
+    public static final String EML_FILE_EXTENSION = ".eml";
 
     /**
      * Default constructor.
@@ -82,8 +80,9 @@ public class PstConverter {
 
     /**
      * Extracts the Outlook Descriptor ID Header value from each previously
-     * converted message by this converter. This method can be used to test if 
-     * a PST file conversion was executed as expected.
+     * converted message by this converter. This method can be used to test if a
+     * PST file conversion was executed as expected, allowing the comparison between 
+     * the returned set of ids with the ones found on the original PST.
      *
      * @param directory Directory where to find the messages.
      * @param format The message format (MBOX or EML).
@@ -103,11 +102,12 @@ public class PstConverter {
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
         System.setProperty("mail.mime.address.strict", "false");
         Set<Long> result = new HashSet<>();
+        Store store = null;
         switch (format) {
             case EML: {
                 Properties sessionProps = new Properties(System.getProperties());
                 Session session = Session.getDefaultInstance(sessionProps);
-                extractDescriptorIds(directory, session, result);
+                store = new EmlStore(session, directory);
                 break;
             }
 
@@ -121,40 +121,21 @@ public class PstConverter {
 
                 Session session = Session.getDefaultInstance(sessionProps);
 
-                MStorStore mboxStore = new MStorStore(session, new URLName("mstor:" + directory));
-                try {
-                    mboxStore.connect();
-                    Folder mboxRootFolder = mboxStore.getDefaultFolder();
-                    extractDescriptorIds(mboxRootFolder, result);
-                } finally {
-                    try {
-                        mboxStore.close();
-                    } catch (MessagingException ignore) {
-                    }
-                }
+                store = new MStorStore(session, new URLName("mstor:" + directory));
                 break;
             }
         }
-        return result;
-    }
-
-    void extractDescriptorIds(File directory, Session session, Set<Long> ids) throws MessagingException {
-        for (File file : directory.listFiles()) {
-            if (file.isDirectory()) {
-                extractDescriptorIds(file, session, ids);
-            } else if (file.isFile() && file.getName().endsWith(EML_FILE_EXTENSION)) {
-                try (FileInputStream fileStream = new FileInputStream(file)) {
-                    MimeMessage msg = new MimeMessage(session, fileStream);
-                    String[] headerValues = msg.getHeader(DESCRIPTOR_ID_HEADER);
-                    if (headerValues != null && headerValues.length > 0) {
-                        long id = Long.parseLong(headerValues[0]);
-                        ids.add(id);
-                    }
-                } catch (IOException ex) {
-                    logger.error("Failed to open file " + file, ex);
-                }
+        try {
+            store.connect();
+            Folder mboxRootFolder = store.getDefaultFolder();
+            extractDescriptorIds(mboxRootFolder, result);
+        } finally {
+            try {
+                store.close();
+            } catch (MessagingException ignore) {
             }
         }
+        return result;
     }
 
     void extractDescriptorIds(Folder folder, Set<Long> ids) throws MessagingException {
@@ -230,20 +211,16 @@ public class PstConverter {
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
         System.setProperty("mail.mime.address.strict", "false");
         int messageCount = 0;
+        Store store = null;
+        Session session = null;
         switch (format) {
             case EML: {
                 if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
                     throw new IOException("Failed to create output directory " + outputDirectory.getAbsolutePath());
                 }
                 Properties sessionProps = new Properties(System.getProperties());
-                Session session = Session.getDefaultInstance(sessionProps);
-                PSTFolder pstRootFolder = pstFile.getRootFolder();
-                try {
-                    messageCount = convertToEML(pstRootFolder, outputDirectory, "\\", session, charset);
-                } catch (PSTException | MessagingException | IOException ex) {
-                    logger.error("Failed to convert PSTFile object for file {}. {}", pstFile.getFileHandle(), ex.getMessage());
-                    throw ex;
-                }
+                session = Session.getDefaultInstance(sessionProps);
+                store = new EmlStore(session, outputDirectory);
                 break;
             }
 
@@ -255,37 +232,37 @@ public class PstConverter {
                 sessionProps.setProperty("mstor.mbox.bufferStrategy", "default");
                 sessionProps.setProperty("mstor.cache.disabled", "true");
 
-                Session session = Session.getDefaultInstance(sessionProps);
-
-                MStorStore mboxStore = new MStorStore(session, new URLName("mstor:" + outputDirectory));
-                try {
-                    mboxStore.connect();
-                    Folder mboxRootFolder = mboxStore.getDefaultFolder();
-                    PSTFolder pstRootFolder = pstFile.getRootFolder();
-                    messageCount = convertToMbox(pstRootFolder, mboxRootFolder, "\\", session, charset);
-                } catch (PSTException | MessagingException | IOException ex) {
-                    logger.error("Failed to convert PSTFile object for file {}. {}", pstFile.getFileHandle(), ex.getMessage());
-                    throw ex;
-                } finally {
-                    try {
-                        mboxStore.close();
-                    } catch (MessagingException ignore) {
-                        // ignore exception
-                    }
-                }
+                session = Session.getDefaultInstance(sessionProps);
+                store = new MStorStore(session, new URLName("mstor:" + outputDirectory));
                 break;
             }
+            default:
+                throw new IllegalArgumentException("Unsupported mail format: " + format);
+        }
+        try {
+            store.connect();
+            Folder rootFolder = store.getDefaultFolder();
+            PSTFolder pstRootFolder = pstFile.getRootFolder();
+            messageCount = convert(pstRootFolder, rootFolder, "\\", session, charset);
+        } catch (PSTException | MessagingException | IOException ex) {
+            logger.error("Failed to convert PSTFile object for file {}. {}", pstFile.getFileHandle(), ex.getMessage());
+            throw ex;
+        } finally {
+            try {
+                store.close();
+            } catch (MessagingException ignore) {
+                // ignore exception
+            }
         }
         return messageCount;
     }
 
     /**
      * Traverses all PSTFolders recursively, starting from the root PSTFolder,
-     * and extracts all email messages in EML format to a directory on the file
-     * system.
+     * and extracts all email messages to a javax.mail.Folder.
      *
      * @param pstFolder
-     * @param directory
+     * @param mailFolder
      * @param path
      * @param session
      * @param charset
@@ -294,54 +271,7 @@ public class PstConverter {
      * @throws IOException
      * @throws MessagingException
      */
-    int convertToEML(PSTFolder pstFolder, File directory, String path, Session session, Charset charset) throws PSTException, IOException, MessagingException {
-        int messageCount = 0;
-        if (pstFolder.getContentCount() > 0) {
-            PSTObject child = pstFolder.getNextChild();
-            while (child != null) {
-                PSTMessage pstMessage = (PSTMessage) child;
-                MimeMessage message = convertToMimeMessage(pstMessage, session, charset);
-
-                String fileName = getEMLFileName(pstMessage.getSubject(), pstMessage.getDescriptorNodeId());
-                File outputFile = new File(directory, fileName);
-                try (FileOutputStream ouputStream = new FileOutputStream(outputFile)) {
-                    message.writeTo(ouputStream);
-                    messageCount++;
-                } catch (IOException | MessagingException ex) {
-                    logger.error("Failed to write EML file {}. {}", outputFile.getAbsolutePath(), ex.getMessage());
-                }
-                child = pstFolder.getNextChild();
-            }
-        }
-        if (pstFolder.hasSubfolders()) {
-            for (PSTFolder pstSubFolder : pstFolder.getSubFolders()) {
-                String subPath = path + "\\" + pstSubFolder.getDisplayName();
-                File subDirectory = new File(directory, pstSubFolder.getDisplayName());
-                if (!subDirectory.exists() && !subDirectory.mkdir()) {
-                    logger.warn("Failed to create subdirectory {}", subPath);
-                    continue;
-                }
-                messageCount += convertToEML(pstSubFolder, subDirectory, subPath, session, charset);
-            }
-        }
-        return messageCount;
-    }
-
-    /**
-     * Traverses all PSTFolders recursively, starting from the root PSTFolder,
-     * and extracts all email messages to a mbox file.
-     *
-     * @param pstFolder
-     * @param mboxFolder
-     * @param path
-     * @param session
-     * @param charset
-     * @return
-     * @throws PSTException
-     * @throws IOException
-     * @throws MessagingException
-     */
-    int convertToMbox(PSTFolder pstFolder, Folder mboxFolder, String path, Session session, Charset charset) throws PSTException, IOException, MessagingException {
+    int convert(PSTFolder pstFolder, Folder mailFolder, String path, Session session, Charset charset) throws PSTException, IOException, MessagingException {
         int messageCount = 0;
         if (pstFolder.getContentCount() > 0) {
             PSTObject child = pstFolder.getNextChild();
@@ -351,7 +281,7 @@ public class PstConverter {
                 PSTMessage pstMessage = (PSTMessage) child;
                 messages[0] = convertToMimeMessage(pstMessage, session, charset);
                 try {
-                    mboxFolder.appendMessages(messages);
+                    mailFolder.appendMessages(messages);
                     messageCount++;
                 } catch (MessagingException ex) {
                     logger.error("Failed to write to Mbox file. {}", ex.getMessage());
@@ -362,15 +292,15 @@ public class PstConverter {
         if (pstFolder.hasSubfolders()) {
             for (PSTFolder pstSubFolder : pstFolder.getSubFolders()) {
                 String subPath = path + "\\" + pstSubFolder.getDisplayName();
-                Folder mboxSubFolder = mboxFolder.getFolder(pstSubFolder.getDisplayName());
+                Folder mboxSubFolder = mailFolder.getFolder(pstSubFolder.getDisplayName());
                 if (!mboxSubFolder.exists()) {
                     if (!mboxSubFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                        logger.warn("Failed to create Mbox sub folder {}", subPath);
+                        logger.warn("Failed to create mail sub folder {}", subPath);
                         continue;
                     }
                 }
                 mboxSubFolder.open(Folder.READ_WRITE);
-                messageCount += convertToMbox(pstSubFolder, mboxSubFolder, subPath, session, charset);
+                messageCount += convert(pstSubFolder, mboxSubFolder, subPath, session, charset);
                 mboxSubFolder.close(false);
             }
         }
@@ -521,38 +451,6 @@ public class PstConverter {
             logger.warn("Unknown mime type {}", mime);
             return false;
         }
-    }
-
-    /**
-     * Generates a valid file name which concatenates the descriptor with e-mail
-     * subject.
-     *
-     * @param subject The e-mail subject.
-     * @param descriptorIndex The index value that uniquely identifies the
-     * e-mail message.
-     * @return A valid file name.
-     */
-    static String getEMLFileName(String subject, long descriptorIndex) {
-        if (subject == null || subject.isEmpty()) {
-            String fileName = descriptorIndex + "-NoSubject.eml";
-            return fileName;
-        }
-
-        StringBuilder builder = new StringBuilder();
-        builder.append(descriptorIndex).append("-");
-
-        String normalizedSubject = StringUtils.stripAccents(subject);
-        final char[] forbidden = {'\"', '*', '/', ':', '<', '>', '?', '\\', '|'};
-        for (int i = 0; i < normalizedSubject.length(); i++) {
-            char c = normalizedSubject.charAt(i);
-            if (c >= 32 && c <= 126 && Arrays.binarySearch(forbidden, c) < 0) {
-                builder.append(c);
-            } else {
-                builder.append('_');
-            }
-        }
-        builder.append(EML_FILE_EXTENSION);
-        return builder.toString();
     }
 
     /**
