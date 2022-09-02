@@ -25,6 +25,7 @@ import com.pff.PSTRecipient;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,7 +33,9 @@ import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.Properties;
+import java.util.Set;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.mail.Folder;
@@ -64,11 +67,121 @@ public class PstConverter {
 
     private static final Logger logger = LoggerFactory.getLogger(PstConverter.class);
     private static final MailDateFormat RFC822_DATE_FORMAT = new MailDateFormat();
+    /**
+     * Name of the custom header added to each converted message to allow to
+     * easily trace back the original message from OST/PST file.
+     */
+    public static final String DESCRIPTOR_ID_HEADER = "X-Outlook-Descriptor-Id";
+    private static final String EML_FILE_EXTENSION = ".eml";
 
     /**
      * Default constructor.
      */
     public PstConverter() {
+    }
+
+    /**
+     * Extracts the Outlook Descriptor ID Header value from each previously
+     * converted message by this converter. This method can be used to test if 
+     * a PST file conversion was executed as expected.
+     *
+     * @param directory Directory where to find the messages.
+     * @param format The message format (MBOX or EML).
+     * @param encoding The message encoding.
+     * @return A set with all the found message ids.
+     * @throws MessagingException
+     */
+    public Set<Long> extractDescriptorIds(File directory, OutputFormat format, String encoding) throws MessagingException {
+        if (!directory.exists()) {
+            throw new IllegalArgumentException(String.format("Inexistent directory: %s", directory.getAbsolutePath()));
+        }
+        if (format == null) {
+            throw new IllegalArgumentException("format is null.");
+        }
+        Charset.forName(encoding); // throws UnsupportedCharsetException if encoding is invalid
+
+        // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
+        System.setProperty("mail.mime.address.strict", "false");
+        Set<Long> result = new HashSet<>();
+        switch (format) {
+            case EML: {
+                Properties sessionProps = new Properties(System.getProperties());
+                Session session = Session.getDefaultInstance(sessionProps);
+                extractDescriptorIds(directory, session, result);
+                break;
+            }
+
+            case MBOX: {
+                Properties sessionProps = new Properties(System.getProperties());
+                // see: https://github.com/micronode/mstor#system-properties
+                sessionProps.setProperty("mstor.mbox.metadataStrategy", "none");
+                sessionProps.setProperty("mstor.mbox.encoding", encoding);
+                sessionProps.setProperty("mstor.mbox.bufferStrategy", "default");
+                sessionProps.setProperty("mstor.cache.disabled", "true");
+
+                Session session = Session.getDefaultInstance(sessionProps);
+
+                MStorStore mboxStore = new MStorStore(session, new URLName("mstor:" + directory));
+                try {
+                    mboxStore.connect();
+                    Folder mboxRootFolder = mboxStore.getDefaultFolder();
+                    extractDescriptorIds(mboxRootFolder, result);
+                } finally {
+                    try {
+                        mboxStore.close();
+                    } catch (MessagingException ignore) {
+                    }
+                }
+                break;
+            }
+        }
+        return result;
+    }
+
+    void extractDescriptorIds(File directory, Session session, Set<Long> ids) throws MessagingException {
+        for (File file : directory.listFiles()) {
+            if (file.isDirectory()) {
+                extractDescriptorIds(file, session, ids);
+            } else if (file.isFile() && file.getName().endsWith(EML_FILE_EXTENSION)) {
+                try (FileInputStream fileStream = new FileInputStream(file)) {
+                    MimeMessage msg = new MimeMessage(session, fileStream);
+                    String[] headerValues = msg.getHeader(DESCRIPTOR_ID_HEADER);
+                    if (headerValues != null && headerValues.length > 0) {
+                        long id = Long.parseLong(headerValues[0]);
+                        ids.add(id);
+                    }
+                } catch (IOException ex) {
+                    logger.error("Failed to open file " + file, ex);
+                }
+            }
+        }
+    }
+
+    void extractDescriptorIds(Folder folder, Set<Long> ids) throws MessagingException {
+        folder.open(Folder.READ_ONLY);
+        try {
+            for (Folder subFolder : folder.list()) {
+                extractDescriptorIds(subFolder, ids);
+            }
+            try {
+                for (Message msg : folder.getMessages()) {
+                    String[] headerValues = msg.getHeader(DESCRIPTOR_ID_HEADER);
+                    if (headerValues != null && headerValues.length > 0) {
+                        long id = Long.parseLong(headerValues[0]);
+                        ids.add(id);
+                    }
+                }
+            } catch (MessagingException ex) {
+                logger.warn("Failed to get messages for folder {}", folder.getFullName());
+            }
+        } finally {
+            if (folder.isOpen()) {
+                try {
+                    folder.close(false);
+                } catch (Exception ignore) {
+                }
+            }
+        }
     }
 
     /**
@@ -89,7 +202,7 @@ public class PstConverter {
         PSTFile pstFile = new PSTFile(inputFile); // throws FileNotFoundException is file doesn't exist.
         return convert(pstFile, outputDirectory, format, encoding);
     }
-    
+
     /**
      * Converts an Outlook OST/PST file to MBox or EML format.
      *
@@ -111,9 +224,9 @@ public class PstConverter {
         if (format == null) {
             throw new IllegalArgumentException("format is null.");
         }
-        
+
         Charset charset = Charset.forName(encoding); // throws UnsupportedCharsetException if encoding is invalid
-        
+
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
         System.setProperty("mail.mime.address.strict", "false");
         int messageCount = 0;
@@ -175,7 +288,7 @@ public class PstConverter {
      * @param directory
      * @param path
      * @param session
-     * @param charset 
+     * @param charset
      * @return
      * @throws PSTException
      * @throws IOException
@@ -269,7 +382,7 @@ public class PstConverter {
      *
      * @param message The PSTMessage object.
      * @param session The java mail session object.
-     * @param charset 
+     * @param charset
      * @return A new MimeMessage object.
      * @throws MessagingException
      * @throws IOException
@@ -283,7 +396,7 @@ public class PstConverter {
 
         convertMessageHeaders(message, mimeMessage, charset);
         // Add custom header to easily track the original message from OST/PST file.
-        mimeMessage.addHeader("X-Outlook-Descriptor-Id", Long.toString(message.getDescriptorNodeId()));
+        mimeMessage.addHeader(DESCRIPTOR_ID_HEADER, Long.toString(message.getDescriptorNodeId()));
 
         MimeMultipart rootMultipart = new MimeMultipart();
         convertMessageBody(message, rootMultipart);
@@ -291,7 +404,7 @@ public class PstConverter {
         mimeMessage.setContent(rootMultipart);
         return mimeMessage;
     }
-    
+
     void convertMessageHeaders(PSTMessage message, MimeMessage mimeMessage, Charset charset) throws IOException, MessagingException, PSTException {
         String messageHeaders = message.getTransportMessageHeaders();
         if (messageHeaders != null && !messageHeaders.isEmpty()) {
@@ -318,21 +431,21 @@ public class PstConverter {
             } else {
                 mimeMessage.setSentDate(sentDate);
             }
-            
+
             InternetAddress fromMailbox = new InternetAddress();
-            
+
             String senderEmailAddress = message.getSenderEmailAddress();
             fromMailbox.setAddress(senderEmailAddress);
-            
+
             String senderName = message.getSenderName();
             if (senderName != null && !senderName.isEmpty()) {
                 fromMailbox.setPersonal(senderName);
             } else {
                 fromMailbox.setPersonal(senderEmailAddress);
             }
-            
+
             mimeMessage.setFrom(fromMailbox);
-            
+
             for (int i = 0; i < message.getNumberOfRecipients(); i++) {
                 PSTRecipient recipient = message.getRecipient(i);
                 switch (recipient.getRecipientType()) {
@@ -356,7 +469,7 @@ public class PstConverter {
         MimeMultipart contentMultipart = new MimeMultipart();
         String messageBody = message.getBody();
         String messageBodyHTML = message.getBodyHTML();
-        
+
         if (messageBodyHTML != null && !messageBodyHTML.isEmpty()) {
             MimeBodyPart htmlBodyPart = new MimeBodyPart();
             htmlBodyPart.setDataHandler(new DataHandler(new ByteArrayDataSource(messageBodyHTML, "text/html")));
@@ -424,10 +537,10 @@ public class PstConverter {
             String fileName = descriptorIndex + "-NoSubject.eml";
             return fileName;
         }
-        
+
         StringBuilder builder = new StringBuilder();
         builder.append(descriptorIndex).append("-");
-        
+
         String normalizedSubject = StringUtils.stripAccents(subject);
         final char[] forbidden = {'\"', '*', '/', ':', '<', '>', '?', '\\', '|'};
         for (int i = 0; i < normalizedSubject.length(); i++) {
@@ -438,7 +551,7 @@ public class PstConverter {
                 builder.append('_');
             }
         }
-        builder.append(".eml");
+        builder.append(EML_FILE_EXTENSION);
         return builder.toString();
     }
 
