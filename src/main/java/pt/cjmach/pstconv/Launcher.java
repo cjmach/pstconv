@@ -57,7 +57,7 @@ public class Launcher implements Callable<Integer> {
      */
     @Option(names = {"-f", "--format"}, paramLabel = "FORMAT", defaultValue = "EML",
             description = "Convert input file to one of the following formats: ${COMPLETION-CANDIDATES}. Default is ${DEFAULT-VALUE}.")
-    private OutputFormat outputFormat;
+    private MailMessageFormat outputFormat;
     /**
      * 
      */
@@ -84,7 +84,8 @@ public class Launcher implements Callable<Integer> {
     public Integer call() throws Exception {
         PstConverter converter = new PstConverter();
         try {
-            converter.convert(inputFile, outputDirectory, outputFormat, encoding);
+            int messageCount = converter.convert(inputFile, outputDirectory, outputFormat, encoding);
+            logger.info("Finished! Converted {} messages.", messageCount);
         } catch (PSTException | MessagingException | IOException ex) {
             return 1;
         }

@@ -48,7 +48,7 @@ public class PstConverterTest {
         String fileName = "/file/not/found.pst";
         File inputFile = new File(fileName);
         File outputDirectory = new File(".");
-        OutputFormat format = OutputFormat.EML;
+        MailMessageFormat format = MailMessageFormat.EML;
         String encoding = "UTF-8";
         assertThrows(FileNotFoundException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
     }
@@ -57,7 +57,7 @@ public class PstConverterTest {
     public void testConvertInputFileIllegal() {        
         File inputFile = new File("."); // invalid file
         File outputDirectory = new File(".");
-        OutputFormat format = OutputFormat.EML;
+        MailMessageFormat format = MailMessageFormat.EML;
         String encoding = "UTF-8";
         assertThrows(FileNotFoundException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
     }
@@ -66,7 +66,7 @@ public class PstConverterTest {
     public void testConvertOutputDirectoryIllegal() {
         File inputFile = new File("src/test/resources/pt/cjmach/pstconv/textfile.txt");
         File outputDirectory = new File("src/test/resources/pt/cjmach/pstconv/textfile.txt");
-        OutputFormat format = OutputFormat.EML;
+        MailMessageFormat format = MailMessageFormat.EML;
         String encoding = "UTF-8";
         assertThrows(PSTException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
     }
@@ -75,7 +75,7 @@ public class PstConverterTest {
     public void testConvertOutputFormatNull() {
         File inputFile = new File("src/test/resources/pt/cjmach/pstconv/outlook.pst");
         File outputDirectory = new File(".");
-        OutputFormat format = null;
+        MailMessageFormat format = null;
         String encoding = "UTF-8";
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
         assertEquals("format is null.", iae.getMessage());
@@ -85,7 +85,7 @@ public class PstConverterTest {
     public void testConvertEncodingInvalid() {
         File inputFile = new File("src/test/resources/pt/cjmach/pstconv/outlook.pst");
         File outputDirectory = new File(".");
-        OutputFormat format = OutputFormat.EML;
+        MailMessageFormat format = MailMessageFormat.EML;
         String encoding = "invalid encoding";
         IllegalArgumentException iae = assertThrows(IllegalArgumentException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
         assertEquals(encoding, iae.getMessage());
