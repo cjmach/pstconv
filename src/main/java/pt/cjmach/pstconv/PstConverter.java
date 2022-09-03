@@ -78,11 +78,36 @@ public class PstConverter {
     public PstConverter() {
     }
 
+    Store createStore(File directory, MailMessageFormat format, String encoding) {
+        switch (format) {
+            case EML: {
+                Properties sessionProps = new Properties(System.getProperties());
+                Session session = Session.getDefaultInstance(sessionProps);
+                return new EmlStore(session, directory);
+            }
+
+            case MBOX: {
+                Properties sessionProps = new Properties(System.getProperties());
+                // see: https://github.com/micronode/mstor#system-properties
+                sessionProps.setProperty("mstor.mbox.metadataStrategy", "none");
+                sessionProps.setProperty("mstor.mbox.encoding", encoding);
+                sessionProps.setProperty("mstor.mbox.bufferStrategy", "default");
+                sessionProps.setProperty("mstor.cache.disabled", "true");
+
+                Session session = Session.getDefaultInstance(sessionProps);
+
+                return new MStorStore(session, new URLName("mstor:" + directory));
+            }
+            default:
+                throw new IllegalArgumentException("Unsupported mail format: " + format);
+        }
+    }
+
     /**
      * Extracts the Outlook Descriptor ID Header value from each previously
      * converted message by this converter. This method can be used to test if a
-     * PST file conversion was executed as expected, allowing the comparison between 
-     * the returned set of ids with the ones found on the original PST.
+     * PST file conversion was executed as expected, allowing the comparison
+     * between the returned set of ids with the ones found on the original PST.
      *
      * @param directory Directory where to find the messages.
      * @param format The message format (MBOX or EML).
@@ -102,29 +127,7 @@ public class PstConverter {
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
         System.setProperty("mail.mime.address.strict", "false");
         Set<Long> result = new HashSet<>();
-        Store store = null;
-        switch (format) {
-            case EML: {
-                Properties sessionProps = new Properties(System.getProperties());
-                Session session = Session.getDefaultInstance(sessionProps);
-                store = new EmlStore(session, directory);
-                break;
-            }
-
-            case MBOX: {
-                Properties sessionProps = new Properties(System.getProperties());
-                // see: https://github.com/micronode/mstor#system-properties
-                sessionProps.setProperty("mstor.mbox.metadataStrategy", "none");
-                sessionProps.setProperty("mstor.mbox.encoding", encoding);
-                sessionProps.setProperty("mstor.mbox.bufferStrategy", "default");
-                sessionProps.setProperty("mstor.cache.disabled", "true");
-
-                Session session = Session.getDefaultInstance(sessionProps);
-
-                store = new MStorStore(session, new URLName("mstor:" + directory));
-                break;
-            }
-        }
+        Store store = createStore(directory, format, encoding);
         try {
             store.connect();
             Folder mboxRootFolder = store.getDefaultFolder();
@@ -211,39 +214,16 @@ public class PstConverter {
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
         System.setProperty("mail.mime.address.strict", "false");
         int messageCount = 0;
-        Store store = null;
-        Session session = null;
-        switch (format) {
-            case EML: {
-                if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
-                    throw new IOException("Failed to create output directory " + outputDirectory.getAbsolutePath());
-                }
-                Properties sessionProps = new Properties(System.getProperties());
-                session = Session.getDefaultInstance(sessionProps);
-                store = new EmlStore(session, outputDirectory);
-                break;
-            }
-
-            case MBOX: {
-                Properties sessionProps = new Properties(System.getProperties());
-                // see: https://github.com/micronode/mstor#system-properties
-                sessionProps.setProperty("mstor.mbox.metadataStrategy", "none");
-                sessionProps.setProperty("mstor.mbox.encoding", encoding);
-                sessionProps.setProperty("mstor.mbox.bufferStrategy", "default");
-                sessionProps.setProperty("mstor.cache.disabled", "true");
-
-                session = Session.getDefaultInstance(sessionProps);
-                store = new MStorStore(session, new URLName("mstor:" + outputDirectory));
-                break;
-            }
-            default:
-                throw new IllegalArgumentException("Unsupported mail format: " + format);
+        
+        if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
+            throw new IOException("Failed to create output directory " + outputDirectory.getAbsolutePath());
         }
+        Store store = createStore(outputDirectory, format, encoding);
         try {
             store.connect();
             Folder rootFolder = store.getDefaultFolder();
             PSTFolder pstRootFolder = pstFile.getRootFolder();
-            messageCount = convert(pstRootFolder, rootFolder, "\\", session, charset);
+            messageCount = convert(pstRootFolder, rootFolder, "\\", charset);
         } catch (PSTException | MessagingException | IOException ex) {
             logger.error("Failed to convert PSTFile object for file {}. {}", pstFile.getFileHandle(), ex.getMessage());
             throw ex;
@@ -264,14 +244,13 @@ public class PstConverter {
      * @param pstFolder
      * @param mailFolder
      * @param path
-     * @param session
      * @param charset
      * @return
      * @throws PSTException
      * @throws IOException
      * @throws MessagingException
      */
-    int convert(PSTFolder pstFolder, Folder mailFolder, String path, Session session, Charset charset) throws PSTException, IOException, MessagingException {
+    int convert(PSTFolder pstFolder, Folder mailFolder, String path, Charset charset) throws PSTException, IOException, MessagingException {
         int messageCount = 0;
         if (pstFolder.getContentCount() > 0) {
             PSTObject child = pstFolder.getNextChild();
@@ -279,7 +258,7 @@ public class PstConverter {
             MimeMessage[] messages = new MimeMessage[1];
             while (child != null) {
                 PSTMessage pstMessage = (PSTMessage) child;
-                messages[0] = convertToMimeMessage(pstMessage, session, charset);
+                messages[0] = convertToMimeMessage(pstMessage, charset);
                 try {
                     mailFolder.appendMessages(messages);
                     messageCount++;
@@ -300,7 +279,7 @@ public class PstConverter {
                     }
                 }
                 mboxSubFolder.open(Folder.READ_WRITE);
-                messageCount += convert(pstSubFolder, mboxSubFolder, subPath, session, charset);
+                messageCount += convert(pstSubFolder, mboxSubFolder, subPath, charset);
                 mboxSubFolder.close(false);
             }
         }
@@ -311,7 +290,6 @@ public class PstConverter {
      * Converts a PSTMessage to MimeMessage.
      *
      * @param message The PSTMessage object.
-     * @param session The java mail session object.
      * @param charset
      * @return A new MimeMessage object.
      * @throws MessagingException
@@ -321,8 +299,8 @@ public class PstConverter {
      * <a href="https://www.independentsoft.de/jpst/tutorial/exporttomimemessages.html">Export
      * to MIME messages (.eml files)</a>
      */
-    MimeMessage convertToMimeMessage(PSTMessage message, Session session, Charset charset) throws MessagingException, IOException, PSTException {
-        MimeMessage mimeMessage = new MimeMessage(session);
+    MimeMessage convertToMimeMessage(PSTMessage message, Charset charset) throws MessagingException, IOException, PSTException {
+        MimeMessage mimeMessage = new MimeMessage((Session) null);
 
         convertMessageHeaders(message, mimeMessage, charset);
         // Add custom header to easily track the original message from OST/PST file.
