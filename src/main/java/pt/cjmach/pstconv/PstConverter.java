@@ -70,7 +70,6 @@ public class PstConverter {
      * easily trace back the original message from OST/PST file.
      */
     public static final String DESCRIPTOR_ID_HEADER = "X-Outlook-Descriptor-Id";
-    public static final String EML_FILE_EXTENSION = ".eml";
 
     /**
      * Default constructor.

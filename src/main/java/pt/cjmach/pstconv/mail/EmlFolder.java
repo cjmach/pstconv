@@ -33,8 +33,9 @@ import pt.cjmach.pstconv.PstConverter;
  * @author cmachado
  */
 public class EmlFolder extends LocalFolder {
+    public static final String EML_FILE_EXTENSION = ".eml";
     private static final FileFilter EML_FILE_FILTER = (File pathname) -> {
-        return pathname.isFile() && pathname.getName().endsWith(PstConverter.EML_FILE_EXTENSION);
+        return pathname.isFile() && pathname.getName().endsWith(EML_FILE_EXTENSION);
     };
 
     public EmlFolder(Store store, File directory) {
@@ -89,7 +90,7 @@ public class EmlFolder extends LocalFolder {
      */
     static String getEMLFileName(String subject, String descriptorIndex) {
         if (subject == null || subject.isEmpty()) {
-            String fileName = descriptorIndex + "-NoSubject" + PstConverter.EML_FILE_EXTENSION;
+            String fileName = descriptorIndex + "-NoSubject" + EML_FILE_EXTENSION;
             return fileName;
         }
 
@@ -106,7 +107,7 @@ public class EmlFolder extends LocalFolder {
                 builder.append('_');
             }
         }
-        builder.append(PstConverter.EML_FILE_EXTENSION);
+        builder.append(EML_FILE_EXTENSION);
         return builder.toString();
     }
 }
