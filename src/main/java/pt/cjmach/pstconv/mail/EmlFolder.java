@@ -26,7 +26,6 @@ import javax.mail.MessagingException;
 import javax.mail.Store;
 import javax.mail.internet.MimeMessage;
 import org.apache.commons.lang3.StringUtils;
-import pt.cjmach.pstconv.PstConverter;
 
 /**
  *
@@ -69,14 +68,6 @@ public class EmlFolder extends LocalFolder {
         } catch (IOException ex) {
             throw new MessagingException("Failed to get message", ex);
         }
-    }
-    
-    static String getDescriptorNodeId(Message msg) throws MessagingException {
-        String[] values = msg.getHeader(PstConverter.DESCRIPTOR_ID_HEADER);
-        if (values == null || values.length <= 0) {
-            return "0";
-        }
-        return values[0];
     }
 
     /**

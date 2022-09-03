@@ -25,6 +25,7 @@ import javax.mail.MessagingException;
 import javax.mail.Store;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
+import pt.cjmach.pstconv.PstConverter;
 
 /**
  *
@@ -187,5 +188,13 @@ public abstract class LocalFolder extends Folder {
     @Override
     public Message[] expunge() throws MessagingException {
         return new Message[0];
+    }
+    
+    static String getDescriptorNodeId(Message msg) throws MessagingException {
+        String[] values = msg.getHeader(PstConverter.DESCRIPTOR_ID_HEADER);
+        if (values == null || values.length <= 0) {
+            return "0";
+        }
+        return values[0];
     }
 }
