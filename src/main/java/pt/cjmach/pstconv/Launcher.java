@@ -84,7 +84,7 @@ public class Launcher implements Callable<Integer> {
     public Integer call() throws Exception {
         PstConverter converter = new PstConverter();
         try {
-            int messageCount = converter.convert(inputFile, outputDirectory, outputFormat, encoding);
+            long messageCount = converter.convert(inputFile, outputDirectory, outputFormat, encoding);
             logger.info("Finished! Converted {} messages.", messageCount);
         } catch (PSTException | MessagingException | IOException ex) {
             return 1;
