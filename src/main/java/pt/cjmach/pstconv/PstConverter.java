@@ -92,6 +92,7 @@ public class PstConverter {
                 sessionProps.setProperty("mstor.mbox.encoding", encoding);
                 sessionProps.setProperty("mstor.mbox.bufferStrategy", "default");
                 sessionProps.setProperty("mstor.cache.disabled", "true");
+                System.setProperties(sessionProps);
 
                 Session session = Session.getDefaultInstance(sessionProps);
 
@@ -146,16 +147,18 @@ public class PstConverter {
             for (Folder subFolder : folder.list()) {
                 extractDescriptorIds(subFolder, ids);
             }
-            try {
-                for (Message msg : folder.getMessages()) {
-                    String[] headerValues = msg.getHeader(DESCRIPTOR_ID_HEADER);
-                    if (headerValues != null && headerValues.length > 0) {
-                        long id = Long.parseLong(headerValues[0]);
-                        ids.add(id);
+            if ((folder.getType() & Folder.HOLDS_MESSAGES) != 0) {
+                try {
+                    for (Message msg : folder.getMessages()) {
+                        String[] headerValues = msg.getHeader(DESCRIPTOR_ID_HEADER);
+                        if (headerValues != null && headerValues.length > 0) {
+                            long id = Long.parseLong(headerValues[0]);
+                            ids.add(id);
+                        }
                     }
+                } catch (MessagingException ex) {
+                    logger.warn("Failed to get messages for folder " + folder.getFullName(), ex);
                 }
-            } catch (MessagingException ex) {
-                logger.warn("Failed to get messages for folder {}", folder.getFullName());
             }
         } finally {
             if (folder.isOpen()) {
@@ -213,7 +216,7 @@ public class PstConverter {
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
         System.setProperty("mail.mime.address.strict", "false");
         int messageCount = 0;
-        
+
         if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
             throw new IOException("Failed to create output directory " + outputDirectory.getAbsolutePath());
         }
