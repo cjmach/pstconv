@@ -31,9 +31,9 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Date;
 import java.util.Enumeration;
-import java.util.HashSet;
 import java.util.Properties;
 import java.util.Set;
+import java.util.TreeSet;
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
 import javax.mail.Folder;
@@ -125,7 +125,7 @@ public class PstConverter {
 
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
         System.setProperty("mail.mime.address.strict", "false");
-        Set<Long> result = new HashSet<>();
+        Set<Long> result = new TreeSet<>();
         Store store = createStore(directory, format, encoding);
         try {
             store.connect();
