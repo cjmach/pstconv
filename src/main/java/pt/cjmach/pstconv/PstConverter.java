@@ -184,7 +184,7 @@ public class PstConverter {
      * @throws MessagingException
      * @throws IOException
      */
-    public int convert(File inputFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
+    public long convert(File inputFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
         PSTFile pstFile = new PSTFile(inputFile); // throws FileNotFoundException is file doesn't exist.
         return convert(pstFile, outputDirectory, format, encoding);
     }
@@ -203,7 +203,7 @@ public class PstConverter {
      * @throws MessagingException
      * @throws IOException
      */
-    public int convert(PSTFile pstFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
+    public long convert(PSTFile pstFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
         if (outputDirectory.exists() && !outputDirectory.isDirectory()) {
             throw new IllegalArgumentException(String.format("Not a directory: %s.", outputDirectory.getAbsolutePath()));
         }
@@ -215,7 +215,7 @@ public class PstConverter {
 
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
         System.setProperty("mail.mime.address.strict", "false");
-        int messageCount = 0;
+        long messageCount = 0;
 
         if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
             throw new IOException("Failed to create output directory " + outputDirectory.getAbsolutePath());
