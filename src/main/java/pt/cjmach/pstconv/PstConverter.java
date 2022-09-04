@@ -86,13 +86,14 @@ public class PstConverter {
             }
 
             case MBOX: {
-                Properties sessionProps = new Properties(System.getProperties());
                 // see: https://github.com/micronode/mstor#system-properties
-                sessionProps.setProperty("mstor.mbox.encoding", encoding);
+                System.setProperty("mstor.mbox.metadataStrategy", "none");
                 System.setProperty("mstor.mbox.encoding", encoding);
-
+                System.setProperty("mstor.mbox.bufferStrategy", "default");
+                System.setProperty("mstor.cache.disabled", "true");
+                
+                Properties sessionProps = new Properties(System.getProperties());
                 Session session = Session.getDefaultInstance(sessionProps);
-
                 return new MStorStore(session, new URLName("mstor:" + directory));
             }
             default:
