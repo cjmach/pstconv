@@ -89,7 +89,7 @@ public class PstConverter {
                 Properties sessionProps = new Properties(System.getProperties());
                 // see: https://github.com/micronode/mstor#system-properties
                 sessionProps.setProperty("mstor.mbox.encoding", encoding);
-                System.setProperties(sessionProps);
+                System.setProperty("mstor.mbox.encoding", encoding);
 
                 Session session = Session.getDefaultInstance(sessionProps);
 
