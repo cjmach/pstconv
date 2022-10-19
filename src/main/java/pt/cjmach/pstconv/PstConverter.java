@@ -163,7 +163,7 @@ public class PstConverter {
             if (folder.isOpen()) {
                 try {
                     folder.close(false);
-                } catch (Exception ignore) {
+                } catch (MessagingException ignore) {
                 }
             }
         }
