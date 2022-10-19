@@ -61,7 +61,7 @@ public class Launcher implements Callable<Integer> {
     /**
      * 
      */
-    @Option(names = {"-e", "--encoding"}, paramLabel = "ENCODING", defaultValue = "UTF-8",
+    @Option(names = {"-e", "--encoding"}, paramLabel = "ENCODING", defaultValue = "ISO-8859-1",
             description = "Encoding to use for reading character data. Default is ${DEFAULT-VALUE}.")
     private String encoding;
     /**
