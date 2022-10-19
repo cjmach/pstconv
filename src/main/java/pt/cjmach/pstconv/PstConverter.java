@@ -416,7 +416,8 @@ public class PstConverter {
 
                 attachmentBodyPart.setContentID(attachment.getContentId());
 
-                String fileName = coalesce("", attachment.getLongFilename(), attachment.getDisplayName(), attachment.getFilename());
+                String fileName = coalesce("fileId-" + attachment.getDescriptorNodeId(), 
+                        attachment.getLongFilename(), attachment.getDisplayName(), attachment.getFilename());
                 attachmentBodyPart.setFileName(fileName);
 
                 rootMultipart.addBodyPart(attachmentBodyPart);
@@ -477,7 +478,7 @@ public class PstConverter {
 
     static String coalesce(String defaultValue, String... args) {
         for (String arg : args) {
-            if (arg != null) {
+            if (arg != null && !arg.isEmpty()) {
                 return arg;
             }
         }
