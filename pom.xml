@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>pt.cjmach</groupId>
     <artifactId>pstconv</artifactId>
-    <version>0.8.3-SNAPSHOT</version>
+    <version>0.9.1-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>pstconv</name>
     <description>Command line tool to convert Outlook OST/PST files to EML/MBOX format</description>

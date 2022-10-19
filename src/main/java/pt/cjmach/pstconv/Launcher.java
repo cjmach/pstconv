@@ -68,11 +68,13 @@ public class Launcher implements Callable<Integer> {
      * 
      */
     @Option(names = {"-v", "--version"}, versionHelp = true, description = "Print version and exit.")
+    @SuppressWarnings("FieldMayBeFinal")
     private boolean versionRequested = false;
     /**
      * 
      */
     @Option(names = {"-h", "--help"}, usageHelp = true, description = "Print help and exit.")
+    @SuppressWarnings("FieldMayBeFinal")
     private boolean helpRequested = false;
 
     /**
@@ -84,14 +86,11 @@ public class Launcher implements Callable<Integer> {
     public Integer call() throws Exception {
         PstConverter converter = new PstConverter();
         try {
-            long messageCount = converter.convert(inputFile, outputDirectory, outputFormat, encoding);
-            logger.info("Finished! Converted {} messages.", messageCount);
+            PstConvertResult result = converter.convert(inputFile, outputDirectory, outputFormat, encoding);
+            logger.info("Finished! Converted {} messages in {} seconds.", result.getMessageCount(), result.getDurationInMillis() / 1000.0);
         } catch (PSTException | MessagingException | IOException ex) {
             return 1;
         }
-        // The application is not finished if the mstor storage provider is used. It 
-        // creates a few threads that remain running after processing the PST file.
-        // The workaround is to call System.exit().
         return 0;
     }
 
@@ -107,6 +106,9 @@ public class Launcher implements Callable<Integer> {
             String version = getVersion();
             System.out.println("pstconv " + version);
         }
+        // The application is not finished if the mstor storage provider is used. It 
+        // creates a few threads that remain running after processing the PST file.
+        // The workaround is to call System.exit().
         System.exit(exitCode);
     }
 
