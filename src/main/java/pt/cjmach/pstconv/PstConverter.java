@@ -258,12 +258,13 @@ public class PstConverter {
             MimeMessage[] messages = new MimeMessage[1];
             while (child != null) {
                 PSTMessage pstMessage = (PSTMessage) child;
-                messages[0] = convertToMimeMessage(pstMessage, charset);
                 try {
+                    messages[0] = convertToMimeMessage(pstMessage, charset);
                     mailFolder.appendMessages(messages);
                     messageCount++;
-                } catch (MessagingException ex) {
-                    logger.error("Failed to write to Mbox file. {}", ex.getMessage());
+                } catch (MessagingException | PSTException | IOException ex) {
+                    logger.error("Failed to append message id {} to folder {}: {}", 
+                            child.getDescriptorNodeId(), mailFolder.getFullName(), ex);
                 }
                 child = pstFolder.getNextChild();
             }
