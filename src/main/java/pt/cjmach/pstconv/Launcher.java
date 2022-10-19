@@ -68,11 +68,13 @@ public class Launcher implements Callable<Integer> {
      * 
      */
     @Option(names = {"-v", "--version"}, versionHelp = true, description = "Print version and exit.")
+    @SuppressWarnings("FieldMayBeFinal")
     private boolean versionRequested = false;
     /**
      * 
      */
     @Option(names = {"-h", "--help"}, usageHelp = true, description = "Print help and exit.")
+    @SuppressWarnings("FieldMayBeFinal")
     private boolean helpRequested = false;
 
     /**
