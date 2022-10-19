@@ -27,7 +27,7 @@ import javax.mail.URLName;
  * @author cmachado
  */
 public class EmlStore extends Store {
-    private EmlFolder rootFolder;
+    private final EmlFolder rootFolder;
     
     public EmlStore(Session session, File rootDirectory) {
         super(session, new URLName("file:" + rootDirectory));
