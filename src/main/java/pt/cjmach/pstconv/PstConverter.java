@@ -51,6 +51,7 @@ import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 import net.fortuna.mstor.MStorStore;
+import org.apache.commons.lang3.time.StopWatch;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
 import org.slf4j.Logger;
@@ -176,13 +177,13 @@ public class PstConverter {
      * extracted to and saved.
      * @param format The output format (MBOX or EML).
      * @param encoding The charset encoding to use for character data.
-     * @return number of successfully converted messages.
+     * @return number of successfully converted messages and the duration of the operation in milliseconds.
      *
      * @throws PSTException
      * @throws MessagingException
      * @throws IOException
      */
-    public long convert(File inputFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
+    public PstConvertResult convert(File inputFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
         PSTFile pstFile = new PSTFile(inputFile); // throws FileNotFoundException is file doesn't exist.
         return convert(pstFile, outputDirectory, format, encoding);
     }
@@ -201,7 +202,7 @@ public class PstConverter {
      * @throws MessagingException
      * @throws IOException
      */
-    public long convert(PSTFile pstFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
+    public PstConvertResult convert(PSTFile pstFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
         if (outputDirectory.exists() && !outputDirectory.isDirectory()) {
             throw new IllegalArgumentException(String.format("Not a directory: %s.", outputDirectory.getAbsolutePath()));
         }
@@ -218,12 +219,14 @@ public class PstConverter {
         if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
             throw new IOException("Failed to create output directory " + outputDirectory.getAbsolutePath());
         }
+        StopWatch watch = StopWatch.createStarted();
         Store store = createStore(outputDirectory, format, encoding);
         try {
             store.connect();
             Folder rootFolder = store.getDefaultFolder();
             PSTFolder pstRootFolder = pstFile.getRootFolder();
             messageCount = convert(pstRootFolder, rootFolder, "\\", charset);
+            watch.stop();
         } catch (PSTException | MessagingException | IOException ex) {
             logger.error("Failed to convert PSTFile object for file {}. {}", pstFile.getFileHandle(), ex.getMessage());
             throw ex;
@@ -234,7 +237,7 @@ public class PstConverter {
                 // ignore exception
             }
         }
-        return messageCount;
+        return new PstConvertResult(messageCount, watch.getTime());
     }
 
     /**
