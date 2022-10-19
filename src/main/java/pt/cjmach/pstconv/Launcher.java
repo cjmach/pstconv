@@ -89,9 +89,6 @@ public class Launcher implements Callable<Integer> {
         } catch (PSTException | MessagingException | IOException ex) {
             return 1;
         }
-        // The application is not finished if the mstor storage provider is used. It 
-        // creates a few threads that remain running after processing the PST file.
-        // The workaround is to call System.exit().
         return 0;
     }
 
@@ -107,6 +104,9 @@ public class Launcher implements Callable<Integer> {
             String version = getVersion();
             System.out.println("pstconv " + version);
         }
+        // The application is not finished if the mstor storage provider is used. It 
+        // creates a few threads that remain running after processing the PST file.
+        // The workaround is to call System.exit().
         System.exit(exitCode);
     }
 
