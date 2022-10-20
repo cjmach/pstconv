@@ -70,7 +70,7 @@ public class PstConverter {
      * Name of the custom header added to each converted message to allow to
      * easily trace back the original message from OST/PST file.
      */
-    public static final String DESCRIPTOR_ID_HEADER = "X-Outlook-Descriptor-Id";
+    public static final String DESCRIPTOR_ID_HEADER = "X-Outlook-Descriptor-Id"; // NOI18N
 
     /**
      * Default constructor.
@@ -88,14 +88,14 @@ public class PstConverter {
 
             case MBOX: {
                 // see: https://github.com/micronode/mstor#system-properties
-                System.setProperty("mstor.mbox.metadataStrategy", "none");
-                System.setProperty("mstor.mbox.encoding", encoding);
-                System.setProperty("mstor.mbox.bufferStrategy", "default");
-                System.setProperty("mstor.cache.disabled", "true");
+                System.setProperty("mstor.mbox.metadataStrategy", "none"); // NOI18N
+                System.setProperty("mstor.mbox.encoding", encoding); // NOI18N
+                System.setProperty("mstor.mbox.bufferStrategy", "default"); // NOI18N
+                System.setProperty("mstor.cache.disabled", "true"); // NOI18N
                 
                 Properties sessionProps = new Properties(System.getProperties());
                 Session session = Session.getDefaultInstance(sessionProps);
-                return new MStorStore(session, new URLName("mstor:" + directory));
+                return new MStorStore(session, new URLName("mstor:" + directory)); // NOI18N
             }
             default:
                 throw new IllegalArgumentException("Unsupported mail format: " + format);
@@ -124,7 +124,7 @@ public class PstConverter {
         Charset.forName(encoding); // throws UnsupportedCharsetException if encoding is invalid
 
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
-        System.setProperty("mail.mime.address.strict", "false");
+        System.setProperty("mail.mime.address.strict", "false"); // NOI18N
         Set<Long> result = new TreeSet<>();
         Store store = createStore(directory, format, encoding);
         try {
@@ -213,7 +213,7 @@ public class PstConverter {
         Charset charset = Charset.forName(encoding); // throws UnsupportedCharsetException if encoding is invalid
 
         // see: https://docs.oracle.com/javaee/6/api/javax/mail/internet/package-summary.html#package_description
-        System.setProperty("mail.mime.address.strict", "false");
+        System.setProperty("mail.mime.address.strict", "false"); // NOI18N
         long messageCount = 0;
 
         if (!outputDirectory.exists() && !outputDirectory.mkdirs()) {
@@ -322,7 +322,7 @@ public class PstConverter {
         if (messageHeaders != null && !messageHeaders.isEmpty()) {
             try (InputStream headersStream = new ByteArrayInputStream(messageHeaders.getBytes(charset))) {
                 InternetHeaders headers = new InternetHeaders(headersStream);
-                headers.removeHeader("Content-Type");
+                headers.removeHeader("Content-Type"); // NOI18N
 
                 Enumeration<Header> allHeaders = headers.getAllHeaders();
 
@@ -330,16 +330,16 @@ public class PstConverter {
                     Header header = allHeaders.nextElement();
                     mimeMessage.addHeader(header.getName(), header.getValue());
                 }
-                String dateHeader = mimeMessage.getHeader("Date", null);
+                String dateHeader = mimeMessage.getHeader("Date", null); // NOI18N
                 if (dateHeader == null || dateHeader.isEmpty()) {
-                    mimeMessage.addHeader("Date", RFC822_DATE_FORMAT.format(message.getMessageDeliveryTime()));
+                    mimeMessage.addHeader("Date", RFC822_DATE_FORMAT.format(message.getMessageDeliveryTime())); // NOI18N
                 }
             }
         } else {
             mimeMessage.setSubject(message.getSubject());
             Date sentDate = message.getClientSubmitTime();
             if (sentDate == null) {
-                mimeMessage.addHeader("Date", "");
+                mimeMessage.addHeader("Date", ""); // NOI18N
             } else {
                 mimeMessage.setSentDate(sentDate);
             }
@@ -384,7 +384,7 @@ public class PstConverter {
 
         if (messageBodyHTML != null && !messageBodyHTML.isEmpty()) {
             MimeBodyPart htmlBodyPart = new MimeBodyPart();
-            htmlBodyPart.setDataHandler(new DataHandler(new ByteArrayDataSource(messageBodyHTML, "text/html")));
+            htmlBodyPart.setDataHandler(new DataHandler(new ByteArrayDataSource(messageBodyHTML, "text/html"))); // NOI18N
             contentMultipart.addBodyPart(htmlBodyPart);
         } else if (messageBody != null && !messageBody.isEmpty()) {
             MimeBodyPart textBodyPart = new MimeBodyPart();
@@ -393,8 +393,8 @@ public class PstConverter {
         } else {
             MimeBodyPart textBodyPart = new MimeBodyPart();
             textBodyPart.setText("");
-            textBodyPart.addHeaderLine("Content-Type: text/plain; charset=\"utf-8\"");
-            textBodyPart.addHeaderLine("Content-Transfer-Encoding: quoted-printable");
+            textBodyPart.addHeaderLine("Content-Type: text/plain; charset=\"utf-8\""); // NOI18N
+            textBodyPart.addHeaderLine("Content-Transfer-Encoding: quoted-printable"); // NOI18N
             contentMultipart.addBodyPart(textBodyPart);
         }
         MimeBodyPart contentBodyPart = new MimeBodyPart();
@@ -416,7 +416,7 @@ public class PstConverter {
 
                 attachmentBodyPart.setContentID(attachment.getContentId());
 
-                String fileName = coalesce("fileId-" + attachment.getDescriptorNodeId(), 
+                String fileName = coalesce("attachment-" + attachment.getDescriptorNodeId(),   // NOI18N
                         attachment.getLongFilename(), attachment.getDisplayName(), attachment.getFilename());
                 attachmentBodyPart.setFileName(fileName);
 

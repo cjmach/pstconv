@@ -43,25 +43,25 @@ public class Launcher implements Callable<Integer> {
     /**
      * 
      */
-    @Option(names = {"-i", "--input"}, paramLabel = "FILE", required = true,
+    @Option(names = {"-i", "--input"}, paramLabel = "FILE", required = true, // NOI18N
             description = "Path to OST/PST input file. Required option.")
     private File inputFile;
     /**
      * 
      */
-    @Option(names = {"-o", "--output"}, paramLabel = "DIRECTORY", required = true,
+    @Option(names = {"-o", "--output"}, paramLabel = "DIRECTORY", required = true, // NOI18N
             description = "Path to Mbox/EML output directory. If it doesn't exist, the application will attempt to create it. Required option.")
     private File outputDirectory;
     /**
      * 
      */
-    @Option(names = {"-f", "--format"}, paramLabel = "FORMAT", defaultValue = "EML",
+    @Option(names = {"-f", "--format"}, paramLabel = "FORMAT", defaultValue = "EML", // NOI18N
             description = "Convert input file to one of the following formats: ${COMPLETION-CANDIDATES}. Default is ${DEFAULT-VALUE}.")
     private MailMessageFormat outputFormat;
     /**
      * 
      */
-    @Option(names = {"-e", "--encoding"}, paramLabel = "ENCODING", defaultValue = "ISO-8859-1",
+    @Option(names = {"-e", "--encoding"}, paramLabel = "ENCODING", defaultValue = "ISO-8859-1", // NOI18N
             description = "Encoding to use for reading character data. Default is ${DEFAULT-VALUE}.")
     private String encoding;
     /**
@@ -104,7 +104,7 @@ public class Launcher implements Callable<Integer> {
         int exitCode = cmdLine.execute(args);
         if (cmdLine.isVersionHelpRequested()) {
             String version = getVersion();
-            System.out.println("pstconv " + version);
+            System.out.println("pstconv " + version); // NOI18N
         }
         // The application is not finished if the mstor storage provider is used. It 
         // creates a few threads that remain running after processing the PST file.
@@ -118,9 +118,9 @@ public class Launcher implements Callable<Integer> {
      */
     private static String getVersion() {
         try {
-            Manifest manifest = new Manifest(Launcher.class.getResourceAsStream("/META-INF/MANIFEST.MF"));
+            Manifest manifest = new Manifest(Launcher.class.getResourceAsStream("/META-INF/MANIFEST.MF")); // NOI18N
             Attributes attributes = manifest.getMainAttributes();
-            String version = attributes.getValue("Implementation-Version");
+            String version = attributes.getValue("Implementation-Version"); // NOI18N
             return version;
         } catch (IOException ex) {
             logger.error("Could not read MANIFEST.MF file", ex);
