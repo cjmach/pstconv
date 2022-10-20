@@ -29,6 +29,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.charset.CoderResult;
+import java.nio.charset.MalformedInputException;
 import java.util.Date;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -92,7 +94,7 @@ public class PstConverter {
                 System.setProperty("mstor.mbox.encoding", encoding); // NOI18N
                 System.setProperty("mstor.mbox.bufferStrategy", "default"); // NOI18N
                 System.setProperty("mstor.cache.disabled", "true"); // NOI18N
-                
+
                 Properties sessionProps = new Properties(System.getProperties());
                 Session session = Session.getDefaultInstance(sessionProps);
                 return new MStorStore(session, new URLName("mstor:" + directory)); // NOI18N
@@ -177,7 +179,8 @@ public class PstConverter {
      * extracted to and saved.
      * @param format The output format (MBOX or EML).
      * @param encoding The charset encoding to use for character data.
-     * @return number of successfully converted messages and the duration of the operation in milliseconds.
+     * @return number of successfully converted messages and the duration of the
+     * operation in milliseconds.
      *
      * @throws PSTException
      * @throws MessagingException
@@ -260,13 +263,33 @@ public class PstConverter {
 
             MimeMessage[] messages = new MimeMessage[1];
             while (child != null) {
+                String errorMsg = "Failed to append message id {} to folder {}.";
                 PSTMessage pstMessage = (PSTMessage) child;
                 try {
                     messages[0] = convertToMimeMessage(pstMessage, charset);
                     mailFolder.appendMessages(messages);
                     messageCount++;
-                } catch (MessagingException | PSTException | IOException ex) {
-                    logger.error("Failed to append message id {} to folder {}: {}", 
+                } catch (MessagingException ex) {
+                    // if the cause of the MessagingException is a MalformedInputException,
+                    // then it was probably thrown due to the encoding set by the user on 
+                    // the command line.
+                    if (ex.getCause() instanceof MalformedInputException) {
+                        MalformedInputException mie = (MalformedInputException) ex.getCause();
+                        if (mie.getStackTrace().length > 0) {
+                            String className = mie.getStackTrace()[0].getClassName();
+                            // if the class that throwed the exception is CoderResult,
+                            // then it was caused by an encoding/decoding error.
+                            if (CoderResult.class.getName().equals(className)) {
+                                errorMsg = String.format("Exception thrown caused by invalid encoding setting: %s. %s",
+                                        charset.displayName(), errorMsg);
+                            }
+                        }
+                    }
+                    logger.error(errorMsg, child.getDescriptorNodeId(), mailFolder.getFullName(), ex);
+                } catch (PSTException | IOException ex) {
+                    // Handle other exceptions as well and move on to the next 
+                    // PST message.
+                    logger.error(errorMsg,
                             child.getDescriptorNodeId(), mailFolder.getFullName(), ex);
                 }
                 child = pstFolder.getNextChild();
@@ -416,7 +439,7 @@ public class PstConverter {
 
                 attachmentBodyPart.setContentID(attachment.getContentId());
 
-                String fileName = coalesce("attachment-" + attachment.getDescriptorNodeId(),   // NOI18N
+                String fileName = coalesce("attachment-" + attachment.getDescriptorNodeId(), // NOI18N
                         attachment.getLongFilename(), attachment.getDisplayName(), attachment.getFilename());
                 attachmentBodyPart.setFileName(fileName);
 
