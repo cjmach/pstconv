@@ -27,6 +27,19 @@
         </repository>
     </distributionManagement>
     
+    <repositories>
+        <repository>
+            <id>project</id>
+            <name>Local Project Repository</name>
+            <url>file:${project.basedir}/m2</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+    </repositories>
+
+    
     <dependencies>
         <dependency>
             <groupId>com.pff</groupId>
