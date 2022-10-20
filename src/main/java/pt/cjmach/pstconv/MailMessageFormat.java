@@ -20,8 +20,8 @@ package pt.cjmach.pstconv;
  * @author cmachado
  */
 public enum MailMessageFormat {
-    MBOX("mbox"),
-    EML("eml");
+    MBOX("mbox"), // NOI18N
+    EML("eml"); // NOI18N
 
     public final String format;
 

@@ -14,7 +14,7 @@ library.
 ```console
 usage: java -jar pstconv.jar [OPTIONS]
  -e,--encoding <ENCODING>   Encoding to use for reading character data.
-                            Default is UTF-8.
+                            Default is ISO-8859-1.
  -f,--format <FORMAT>       Convert input file to one of the following
                             formats: mbox, eml. Default is eml.
  -h,--help                  Print help and exit.
