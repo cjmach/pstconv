@@ -55,7 +55,7 @@ public class Launcher implements Callable<Integer> {
     /**
      * 
      */
-    @Option(names = {"-f", "--format"}, paramLabel = "FORMAT", defaultValue = "EML", // NOI18N
+    @Option(names = {"-f", "--format"}, paramLabel = "FORMAT", defaultValue = "MBOX", // NOI18N
             description = "Convert input file to one of the following formats: ${COMPLETION-CANDIDATES}. Default is ${DEFAULT-VALUE}.")
     private MailMessageFormat outputFormat;
     /**
