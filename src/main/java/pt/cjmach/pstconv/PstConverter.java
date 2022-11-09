@@ -292,7 +292,17 @@ public class PstConverter {
                     logger.error(errorMsg,
                             child.getDescriptorNodeId(), mailFolder.getFullName(), ex);
                 }
-                child = pstFolder.getNextChild();
+                try {
+                    child = pstFolder.getNextChild();
+                } catch (IndexOutOfBoundsException ex) {
+                    // This exception is thrown by java-libpst on more recent 
+                    // versions (0.9.5-SNAPSHOT). It only happens when the PST 
+                    // content is read from a stream.
+                    logger.error("Index out of bounds when trying to get next child on folder {} ({}).", 
+                            pstFolder.getDisplayName(), pstFolder.getDescriptorNodeId());
+                    // Try to continue to the next PST folder.
+                    break;
+                }
             }
         }
         if (pstFolder.hasSubfolders()) {

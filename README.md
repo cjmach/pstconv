@@ -53,11 +53,11 @@ We have randomly selected 12 PST files from real forensic cases with sizes rangi
 | File02.pst | 299       | 1126      | 11.6           | 96.8           |
 | File03.pst | 554       | 978       | 19.3           | 50.7           |
 | File04.pst | 632       | 1198      | 21.2           | 56.4           |
-| File05.pst | 770       | 1398      | 21.0           | 66.1           |
+| File05.pst | 770       | 1388      | 21.0           | 66.1           |
 | File06.pst | 1033      | 3045      | 34.8           | 87.6           |
 | File07.pst | 1162      | 4393      | 36.1           | 121.6          |
 | File08.pst | 1365      | 3122      | 41.7           | 74.8           |
-| File09.pst | 1849      | 3422      | 59.7           | 57.5           |
+| File09.pst | 1849      | 3432      | 59.7           | 57.5           |
 | File10.pst | 1979      | 10460     | 68.1           | 153.6          |
 | File11.pst | 2771      | 2745      | 89.6           | 30.7           |
 | File12.pst | 3477      | 3451      | 115.0          | 30.0           |
@@ -71,11 +71,11 @@ We have randomly selected 12 PST files from real forensic cases with sizes rangi
 | File02.pst | 299       | 1126      | 67.9           | 16.6           |
 | File03.pst | 554       | 978       | 134.7          | 7.3            |
 | File04.pst | 632       | 1198      | 139.6          | 8.6            |
-| File05.pst | 770       | 1398      | 151.5          | 9.2            |
+| File05.pst | 770       | 1388      | 151.5          | 9.2            |
 | File06.pst | 1033      | 3045      | 224.8          | 13.6           |
 | File07.pst | 1162      | 4393      | 238.6          | 18.4           |
 | File08.pst | 1365      | 3122      | 274.9          | 11.4           |
-| File09.pst | 1849      | 3422      | 392.0          | 8.8            |
+| File09.pst | 1849      | 3432      | 392.0          | 8.8            |
 | File10.pst | 1979      | 10460     | 424.2          | 24.7           |
 | File11.pst | 2771      | 2745      | 611.0          | 4.5            |
 | File12.pst | 3477      | 3451      | 762.4          | 4.5            |
@@ -102,7 +102,7 @@ $ mvn -B package
 Go to the project directory and run the following commands:
 
 ```console
-$ mvn -B release:prepare -DignoreSnapshots=true
+$ mvn -B release:prepare
 $ mvn -B release:perform -Darguments='-Dmaven.deploy.skip=true' 
 ```
 
@@ -111,5 +111,5 @@ It will automatically assume the defaults for each required parameter, namely,
 of each version, the `release:prepare` command can be run as follows:
 
 ```console
-$ mvn -B release:prepare -DignoreSnapshots=true -DreleaseVersion={a release version} -DdevelopmentVersion={next version}-SNAPSHOT
+$ mvn -B release:prepare -DreleaseVersion={a release version} -DdevelopmentVersion={next version}-SNAPSHOT
 ```
