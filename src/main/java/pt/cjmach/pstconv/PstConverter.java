@@ -165,7 +165,7 @@ public class PstConverter {
             if (folder.isOpen()) {
                 try {
                     folder.close(false);
-                } catch (MessagingException ignore) {
+                } catch (MessagingException | NullPointerException ignore) {
                 }
             }
         }
