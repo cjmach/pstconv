@@ -33,14 +33,19 @@ $ java -jar pstconv.jar -i File01.pst -o mailbox
 
 After the conversion is finished, you can use a free software like [Mozilla Thunderbird](https://www.thunderbird.net/) in combination with [ImportExportTools NG](https://addons.thunderbird.net/en-US/thunderbird/addon/importexporttools-ng/) add-on to import the 'mailbox' directory to the e-mail client mailbox and view the converted messages. According to ImportExportTools NG [plugin documentation](https://github.com/thundernest/import-export-tools-ng#features), the import should work with either MBOX or EML formats, but we only tested it with MBOX:
 1. Right-click on the 'Local Folders' entry to popup the context menu and select the 'Import mbox file' option as shown in the following image; 
+
 <p align="center">
 <img alt="ImportExportTools context menu" src="doc/img/thunderbird-import-menu.png" />
 </p>
+
 2. On the 'MBox Import dialog', select the option 'Import one or more mbox files, with its/their subdirectory'. Hit the 'OK' button and a open file dialog is shown to allow to select the mbox file. To import all messages from the converted "mailbox" directory, select the file 'Top of Personal Folders' located on the root of that directory. Click on the 'Open' button to start importing the 'mailbox' directory (it may take a while depending on the number and size of the messages); 
+
 <p align="center">
 <img alt="ImportExportTools import dialog" src="doc/img/thunderbird-import-dialog.png" />
 </p>
+
 3. After the import is finished, a new directory named 'Top of Personal Folders' is added to the 'Local Folders' entry containing all messages from the 'mailbox' directory. 
+
 <p align="center">
 <img alt="Messages added to Local Folders entry" src="doc/img/thunderbird-imported.png" />
 </p>
