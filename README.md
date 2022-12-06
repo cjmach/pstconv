@@ -25,15 +25,21 @@ usage: java -jar pstconv.jar [OPTIONS]
  -v,--version               Print version and exit.
 ```
 
-For example, the following command will convert File01.pst to MBOX format, saving the results to a directory named "mailbox":
+For example, the following command will convert File01.pst to MBOX format, saving the results to a directory named 'mailbox':
 
 ```console
 $ java -jar pstconv.jar -i File01.pst -o mailbox
 ```
 
-After the conversion is finished, you can use a free software like [Mozilla Thunderbird](https://www.thunderbird.net/) in combination with [ImportExportTools NG](https://addons.thunderbird.net/en-US/thunderbird/addon/importexporttools-ng/) add-on to import the "mailbox" directory to the e-mail client mailbox and view the converted messages.
+After the conversion is finished, you can use a free software like [Mozilla Thunderbird](https://www.thunderbird.net/) in combination with [ImportExportTools NG](https://addons.thunderbird.net/en-US/thunderbird/addon/importexporttools-ng/) add-on to import the 'mailbox' directory to the e-mail client mailbox and view the converted messages. According to ImportExportTools NG [plugin documentation](https://github.com/thundernest/import-export-tools-ng#features), the import should work with either MBOX or EML formats, but we only tested it with MBOX:
+1. Right-click on the 'Local Folders' entry to popup the context menu and select the 'Import mbox file' option as shown in the following image; 
+![ImportExportTools context menu](doc/img/thunderbird-import-menu.png)
+2. On the 'MBox Import dialog', select the option 'Import one or more mbox files, with its/their subdirectory'. Hit the 'OK' button and a open file dialog is shown to allow to select the mbox file. To import all messages from the converted "mailbox" directory, select the file 'Top of Personal Folders' located on the root of that directory. Click on the 'Open' button to start importing the 'mailbox' directory (it may take a while depending on the number and size of the messages); 
+![ImportExportTools import dialog](doc/img/thunderbird-import-dialog.png)
+3. After the import is finished, a new directory named 'Top of Personal Folders' is added to the 'Local Folders' entry containing all messages from the 'mailbox' directory. 
+![Messages added to Local Folders entry](doc/img/thunderbird-imported.png)
 
-The tool adds a custom header named 'X-Outlook-Descriptor-Id' to each converted message containing the value of the descriptor id from the original PST message, so that's possible to compare both messages if needed.
+The tool also adds a custom header named 'X-Outlook-Descriptor-Id' to each converted message containing the value of the descriptor id from the original PST message, so that's possible to compare both messages if needed.
 
 # How it works
 
