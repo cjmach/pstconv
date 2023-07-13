@@ -1,5 +1,5 @@
 /*
- *  Copyright 2022 Carlos Machado
+ *  Copyright 2023 Carlos Machado
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 
 /**
  *
- * @author mach
+ * @author cmachado
  */
 public final class PstUtil {
     
