@@ -307,8 +307,9 @@ public class PstConverter {
         }
         if (pstFolder.hasSubfolders()) {
             for (PSTFolder pstSubFolder : pstFolder.getSubFolders()) {
-                String subPath = path + "\\" + pstSubFolder.getDisplayName();
-                Folder mboxSubFolder = mailFolder.getFolder(pstSubFolder.getDisplayName());
+                String folderName = PstUtil.normalizeString(pstSubFolder.getDisplayName());
+                String subPath = path + "\\" + folderName;
+                Folder mboxSubFolder = mailFolder.getFolder(folderName);
                 if (!mboxSubFolder.exists()) {
                     if (!mboxSubFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
                         logger.warn("Failed to create mail sub folder {}", subPath);

@@ -26,6 +26,7 @@ import javax.mail.MessagingException;
 import javax.mail.Store;
 import javax.mail.internet.MimeMessage;
 import org.apache.commons.lang3.StringUtils;
+import pt.cjmach.pstconv.PstUtil;
 
 /**
  *
@@ -88,16 +89,8 @@ public class EmlFolder extends LocalFolder {
         StringBuilder builder = new StringBuilder();
         builder.append(descriptorIndex).append("-");
 
-        String normalizedSubject = StringUtils.stripAccents(subject);
-        final char[] forbidden = {'\"', '*', '/', ':', '<', '>', '?', '\\', '|'};
-        for (int i = 0; i < normalizedSubject.length(); i++) {
-            char c = normalizedSubject.charAt(i);
-            if (c >= 32 && c <= 126 && Arrays.binarySearch(forbidden, c) < 0) {
-                builder.append(c);
-            } else {
-                builder.append('_');
-            }
-        }
+        String normalizedSubject = PstUtil.normalizeString(subject);
+        builder.append(normalizedSubject);
         builder.append(EML_FILE_EXTENSION);
         return builder.toString();
     }
