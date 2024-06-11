@@ -24,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 import javax.mail.Address;
 import javax.mail.Folder;
 import javax.mail.Message;
+import javax.mail.MessagingException;
 import javax.mail.Store;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
@@ -59,12 +60,13 @@ public class PstConverterTest {
         MailMessageFormat format = MailMessageFormat.MBOX;
         String encoding = StandardCharsets.ISO_8859_1.name();
         int expectedMessageCount = 3;
+        Store store = null;
         
         try {
             PstConvertResult result = instance.convert(inputFile, outputDirectory, format, encoding);
             assertEquals(expectedMessageCount, result.getMessageCount(), "Unexpected number of converted messages.");
             
-            Store store = instance.createStore(outputDirectory, format, encoding);
+            store = instance.createStore(outputDirectory, format, encoding);
             store.connect();
             
             // Root Folder / Inbox (in portuguese)
@@ -92,6 +94,11 @@ public class PstConverterTest {
         } catch (Exception ex) {
             fail(ex);
         } finally {
+            if (store != null) {
+                try {
+                    store.close();
+                } catch (MessagingException ignore) {}
+            }
             try {
                 FileUtils.deleteDirectory(outputDirectory);
             } catch (IOException ignore) { }
