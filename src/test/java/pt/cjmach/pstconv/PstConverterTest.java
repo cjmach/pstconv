@@ -18,6 +18,18 @@ package pt.cjmach.pstconv;
 import com.pff.PSTException;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import javax.mail.Address;
+import javax.mail.Folder;
+import javax.mail.Message;
+import javax.mail.Store;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
@@ -39,6 +51,52 @@ public class PstConverterTest {
     public void tearDown() {
         instance = null;
     }
+    
+    @Test
+    public void testConvertInputFileSuccess() {
+        File inputFile = new File("src/test/resources/pt/cjmach/pstconv/outlook.pst");
+        File outputDirectory = new File("mailbox");
+        MailMessageFormat format = MailMessageFormat.MBOX;
+        String encoding = StandardCharsets.ISO_8859_1.name();
+        int expectedMessageCount = 3;
+        
+        try {
+            PstConvertResult result = instance.convert(inputFile, outputDirectory, format, encoding);
+            assertEquals(expectedMessageCount, result.getMessageCount(), "Unexpected number of converted messages.");
+            
+            Store store = instance.createStore(outputDirectory, format, encoding);
+            store.connect();
+            
+            // Root Folder / Inbox (in portuguese)
+            Folder inbox = store.getFolder("Inicio do ficheiro de dados do Outlook").getFolder("Caixa de Entrada");
+            inbox.open(Folder.READ_ONLY);
+            
+            Message[] messages = inbox.getMessages();
+            assertEquals(expectedMessageCount, messages.length, "Unexpected number of messages in inbox.");
+            
+            MimeMessage lastMessage = (MimeMessage) messages[expectedMessageCount - 1];
+            Address[] from = lastMessage.getFrom();
+            assertEquals(1, from.length);
+            assertEquals("abcd@as.pt", from[0].toString());
+            
+            String descriptorIdHeader = lastMessage.getHeader(PstConverter.DESCRIPTOR_ID_HEADER, null);
+            assertEquals("2097252", descriptorIdHeader);
+            
+            MimeMultipart multiPart = (MimeMultipart) lastMessage.getContent();
+            MimeBodyPart bodyPart = (MimeBodyPart) multiPart.getBodyPart(0);
+            MimeMultipart bodyMultiPart = (MimeMultipart) bodyPart.getContent();
+            try (InputStream stream = bodyMultiPart.getBodyPart(0).getInputStream()) {
+                String content = IOUtils.toString(stream, StandardCharsets.US_ASCII.name());
+                assertEquals("Teste 23:34", content);
+            }
+        } catch (Exception ex) {
+            fail(ex);
+        } finally {
+            try {
+                FileUtils.deleteDirectory(outputDirectory);
+            } catch (IOException ignore) { }
+        }
+    }
 
     /**
      * Test of convert method, of class PstConverter.
@@ -50,7 +108,8 @@ public class PstConverterTest {
         File outputDirectory = new File(".");
         MailMessageFormat format = MailMessageFormat.EML;
         String encoding = "UTF-8";
-        assertThrows(FileNotFoundException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
+        FileNotFoundException ex = assertThrows(FileNotFoundException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
+        assertEquals(FileNotFoundException.class, ex.getClass());
     }
     
     @Test
@@ -59,7 +118,8 @@ public class PstConverterTest {
         File outputDirectory = new File(".");
         MailMessageFormat format = MailMessageFormat.EML;
         String encoding = "UTF-8";
-        assertThrows(FileNotFoundException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
+        FileNotFoundException ex = assertThrows(FileNotFoundException.class, () -> instance.convert(inputFile, outputDirectory, format, encoding));
+        assertEquals(FileNotFoundException.class, ex.getClass());
     }
     
     @Test
