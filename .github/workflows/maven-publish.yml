@@ -12,7 +12,7 @@ jobs:
 
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       packages: write
 
     steps:
@@ -30,5 +30,12 @@ jobs:
 
     - name: Publish to GitHub Packages Apache Maven
       run: mvn deploy -s $GITHUB_WORKSPACE/settings.xml
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+        
+    - name: Upload jar to release
+      run: |
+        echo "Uploading to ref ${{ github.event.release.tag_name }}..."
+        gh release upload ${{ github.event.release.tag_name }} ${{ github.workspace }}/target/pstconv-*.jar
       env:
         GITHUB_TOKEN: ${{ github.token }}

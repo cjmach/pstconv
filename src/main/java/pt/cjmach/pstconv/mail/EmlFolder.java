@@ -1,5 +1,5 @@
 /*
- *  Copyright 2022 Carlos Machado
+ *  Copyright 2024 Carlos Machado
  *
  *  Licensed under the Apache License, Version 2.0 (the "License");
  *  you may not use this file except in compliance with the License.
@@ -20,12 +20,10 @@ import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
 import javax.mail.Message;
 import javax.mail.MessagingException;
 import javax.mail.Store;
 import javax.mail.internet.MimeMessage;
-import org.apache.commons.lang3.StringUtils;
 import pt.cjmach.pstconv.PstUtil;
 
 /**
