@@ -442,10 +442,11 @@ public class PstConverter {
 
             if (attachment != null) {
                 byte[] data = getAttachmentBytes(attachment);
-                if (data.length == 0) {
+                if (data == null) {
                     logger.warn("Failed to extract bytes of attachment {} from message {}.", 
                             attachment.getDescriptorNodeId(), message.getDescriptorNodeId());
                     // try to add the attachment, which may still be useful even without its contents.
+                    data = new byte[0];
                 }
                 
                 MimeBodyPart attachmentBodyPart = new MimeBodyPart();
@@ -495,7 +496,7 @@ public class PstConverter {
         try {
             input = attachment.getFileInputStream();
         } catch (NullPointerException ex) {
-            return new byte[0];
+            return null;
         }
         try {
             int nread;
