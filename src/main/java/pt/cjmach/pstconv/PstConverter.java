@@ -256,8 +256,8 @@ public class PstConverter {
      * @throws IOException
      * @throws MessagingException
      */
-    int convert(PSTFolder pstFolder, Folder mailFolder, String path, Charset charset) throws PSTException, IOException, MessagingException {
-        int messageCount = 0;
+    long convert(PSTFolder pstFolder, Folder mailFolder, String path, Charset charset) throws PSTException, IOException, MessagingException {
+        long messageCount = 0;
         if (pstFolder.getContentCount() > 0) {
             PSTObject child = pstFolder.getNextChild();
 
@@ -312,7 +312,7 @@ public class PstConverter {
                 Folder mboxSubFolder = mailFolder.getFolder(folderName);
                 if (!mboxSubFolder.exists()) {
                     if (!mboxSubFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                        logger.warn("Failed to create mail sub folder {}", subPath);
+                        logger.warn("Failed to create mail sub folder {}.", subPath);
                         continue;
                     }
                 }
@@ -442,19 +442,30 @@ public class PstConverter {
 
             if (attachment != null) {
                 byte[] data = getAttachmentBytes(attachment);
+                if (data == null) {
+                    logger.warn("Failed to extract bytes of attachment {} from message {}.", 
+                            attachment.getDescriptorNodeId(), message.getDescriptorNodeId());
+                    // try to add the attachment, which may still be useful even without its contents.
+                    data = new byte[0];
+                }
+                
                 MimeBodyPart attachmentBodyPart = new MimeBodyPart();
+                try {
+                    String mimeTag = getAttachmentMimeTag(attachment);
+                    DataSource source = new ByteArrayDataSource(data, mimeTag);
+                    attachmentBodyPart.setDataHandler(new DataHandler(source));
 
-                String mimeTag = getAttachmentMimeTag(attachment);
-                DataSource source = new ByteArrayDataSource(data, mimeTag);
-                attachmentBodyPart.setDataHandler(new DataHandler(source));
+                    attachmentBodyPart.setContentID(attachment.getContentId());
 
-                attachmentBodyPart.setContentID(attachment.getContentId());
+                    String fileName = coalesce("attachment-" + attachment.getDescriptorNodeId(), // NOI18N
+                            attachment.getLongFilename(), attachment.getDisplayName(), attachment.getFilename());
+                    attachmentBodyPart.setFileName(fileName);
 
-                String fileName = coalesce("attachment-" + attachment.getDescriptorNodeId(), // NOI18N
-                        attachment.getLongFilename(), attachment.getDisplayName(), attachment.getFilename());
-                attachmentBodyPart.setFileName(fileName);
-
-                rootMultipart.addBodyPart(attachmentBodyPart);
+                    rootMultipart.addBodyPart(attachmentBodyPart);
+                } catch (NullPointerException ex) {
+                    logger.warn("Failed to convert attachment {} from message {}.", 
+                            attachment.getDescriptorNodeId(), message.getDescriptorNodeId());
+                }
             }
         }
     }
@@ -481,7 +492,13 @@ public class PstConverter {
      * stream.
      */
     static byte[] getAttachmentBytes(PSTAttachment attachment) throws PSTException, IOException {
-        try (InputStream input = attachment.getFileInputStream()) {
+        InputStream input;
+        try {
+            input = attachment.getFileInputStream();
+        } catch (NullPointerException ex) {
+            return null;
+        }
+        try {
             int nread;
             byte[] buffer = new byte[4096];
             try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
@@ -492,11 +509,18 @@ public class PstConverter {
                 byte[] result = output.toByteArray();
                 return result;
             }
+        } finally {
+            try {
+                input.close();
+            } catch (IOException ignore) { }
         }
     }
 
     static String getAttachmentMimeTag(PSTAttachment attachment) {
-        String mimeTag = attachment.getMimeTag();
+        String mimeTag = null;
+        try {
+            mimeTag = attachment.getMimeTag();
+        } catch (NullPointerException ignore) { }
         // mimeTag should contain a valid mime type, but sometimes it doesn't.
         // To prevent throwing exceptions when the MimeMessage is validated, the
         // mimeTag value is first checked with isMimeTypeKnown(). If it's not 
