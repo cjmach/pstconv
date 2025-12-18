@@ -53,18 +53,17 @@ public class PstConverterTest {
         instance = null;
     }
     
-    @Test
-    public void testConvertInputFileSuccess() {
+    private void testConvertInputFile(MailMessageFormat format) {
         File inputFile = new File("src/test/resources/pt/cjmach/pstconv/outlook.pst");
         File outputDirectory = new File("mailbox");
-        MailMessageFormat format = MailMessageFormat.MBOX;
         String encoding = StandardCharsets.ISO_8859_1.name();
-        int expectedMessageCount = 3;
+        int expectedTotalMessageCount = 3;
+        int expectedInboxMessageCount = 2; // expected count on the inbox folder, excluding child folders.
         Store store = null;
         
         try {
             PstConvertResult result = instance.convert(inputFile, outputDirectory, format, encoding);
-            assertEquals(expectedMessageCount, result.getMessageCount(), "Unexpected number of converted messages.");
+            assertEquals(expectedTotalMessageCount, result.getMessageCount(), "Unexpected number of converted messages.");
             
             store = instance.createStore(outputDirectory, format, encoding);
             store.connect();
@@ -74,17 +73,23 @@ public class PstConverterTest {
             inbox.open(Folder.READ_ONLY);
             
             Message[] messages = inbox.getMessages();
-            assertEquals(expectedMessageCount, messages.length, "Unexpected number of messages in inbox.");
+            assertEquals(expectedInboxMessageCount, messages.length, "Unexpected number of messages in inbox.");
             
-            MimeMessage lastMessage = (MimeMessage) messages[expectedMessageCount - 1];
-            Address[] from = lastMessage.getFrom();
-            assertEquals(1, from.length);
-            assertEquals("abcd@as.pt", from[0].toString());
+            Message messageFromAbcd = null;
+            for (Message message : messages) {
+                Address[] from = message.getFrom();
+                assertEquals(1, from.length);
+                if ("abcd@as.pt".equals(from[0].toString())) {
+                    messageFromAbcd = message;
+                    break;
+                }
+            }
+            assertNotNull(messageFromAbcd, "Message from abcd@as.pt not found on inbox.");
             
-            String descriptorIdHeader = lastMessage.getHeader(PstConverter.DESCRIPTOR_ID_HEADER, null);
+            String descriptorIdHeader = ((MimeMessage) messageFromAbcd).getHeader(PstConverter.DESCRIPTOR_ID_HEADER, null);
             assertEquals("2097252", descriptorIdHeader);
             
-            MimeMultipart multiPart = (MimeMultipart) lastMessage.getContent();
+            MimeMultipart multiPart = (MimeMultipart) messageFromAbcd.getContent();
             MimeBodyPart bodyPart = (MimeBodyPart) multiPart.getBodyPart(0);
             MimeMultipart bodyMultiPart = (MimeMultipart) bodyPart.getContent();
             try (InputStream stream = bodyMultiPart.getBodyPart(0).getInputStream()) {
@@ -103,6 +108,12 @@ public class PstConverterTest {
                 FileUtils.deleteDirectory(outputDirectory);
             } catch (IOException ignore) { }
         }
+    }
+    
+    @Test
+    public void testConvertInputFileSuccess() {
+        testConvertInputFile(MailMessageFormat.MBOX);
+        testConvertInputFile(MailMessageFormat.EML);
     }
 
     /**
