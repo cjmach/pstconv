@@ -231,7 +231,7 @@ public class PstConverter {
             messageCount = convert(pstRootFolder, rootFolder, "\\", charset);
             watch.stop();
         } catch (PSTException | MessagingException | IOException ex) {
-            logger.error("Failed to convert PSTFile object for file {}. {}", pstFile.getFileHandle(), ex.getMessage());
+            logger.error("Failed to convert PSTFile object.", ex);
             throw ex;
         } finally {
             try {
