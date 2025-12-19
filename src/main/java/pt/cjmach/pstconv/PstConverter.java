@@ -52,7 +52,7 @@ import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
-import net.fortuna.mstor.MStorStore;
+import net.fortuna.mstor.model.MStorStore;
 import org.apache.commons.lang3.time.StopWatch;
 import org.apache.tika.mime.MimeTypeException;
 import org.apache.tika.mime.MimeTypes;
@@ -231,7 +231,7 @@ public class PstConverter {
             messageCount = convert(pstRootFolder, rootFolder, "\\", charset);
             watch.stop();
         } catch (PSTException | MessagingException | IOException ex) {
-            logger.error("Failed to convert PSTFile object for file {}. {}", pstFile.getFileHandle(), ex.getMessage());
+            logger.error("Failed to convert PSTFile object.", ex);
             throw ex;
         } finally {
             try {

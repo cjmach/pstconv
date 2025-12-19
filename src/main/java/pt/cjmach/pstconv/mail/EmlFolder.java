@@ -59,7 +59,7 @@ public class EmlFolder extends LocalFolder {
 
     @Override
     public Message getMessage(int msgnum) throws MessagingException  {
-        File emlFile = getFileEntries()[msgnum];
+        File emlFile = getFileEntries()[msgnum - 1];
         try (FileInputStream emlFileStream = new FileInputStream(emlFile)) {
             // TODO: Null session? Is it Ok?
             MimeMessage msg = new MimeMessage(null, emlFileStream);

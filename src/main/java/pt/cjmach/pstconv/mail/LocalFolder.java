@@ -41,7 +41,9 @@ public abstract class LocalFolder extends Folder {
         super(store);
         this.directory = directory;
         this.fileFilter = fileFilter;
-        assert directory.isDirectory();
+        if (directory.exists()) {
+            assert directory.isDirectory();
+        }
     }
     
     protected abstract LocalFolder createInstance(Store store, File directory, FileFilter fileFilter);

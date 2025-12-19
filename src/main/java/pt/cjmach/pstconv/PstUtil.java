@@ -38,6 +38,6 @@ public final class PstUtil {
                 builder.append('_');
             }
         }
-        return builder.toString();
+        return StringUtils.stripEnd(builder.toString(), null);
     }
 }
