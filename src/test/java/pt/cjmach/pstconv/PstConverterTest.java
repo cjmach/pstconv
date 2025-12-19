@@ -112,8 +112,8 @@ public class PstConverterTest {
     
     @Test
     public void testConvertInputFileSuccess() {
-        testConvertInputFile(MailMessageFormat.MBOX);
         testConvertInputFile(MailMessageFormat.EML);
+        testConvertInputFile(MailMessageFormat.MBOX);
     }
 
     /**
