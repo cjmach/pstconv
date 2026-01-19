@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author cmachado
  */
-public class PstConverter {
+public class PstConverter implements OutlookFileConverter {
 
     private static final Logger logger = LoggerFactory.getLogger(PstConverter.class);
     private static final MailDateFormat RFC822_DATE_FORMAT = new MailDateFormat();
@@ -186,7 +186,8 @@ public class PstConverter {
      * @throws MessagingException
      * @throws IOException
      */
-    public PstConvertResult convert(File inputFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
+    @Override
+    public ConvertResult convert(File inputFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
         PSTFile pstFile = new PSTFile(inputFile); // throws FileNotFoundException is file doesn't exist.
         return convert(pstFile, outputDirectory, format, encoding);
     }
@@ -205,7 +206,7 @@ public class PstConverter {
      * @throws MessagingException
      * @throws IOException
      */
-    public PstConvertResult convert(PSTFile pstFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
+    public ConvertResult convert(PSTFile pstFile, File outputDirectory, MailMessageFormat format, String encoding) throws PSTException, MessagingException, IOException {
         if (outputDirectory.exists() && !outputDirectory.isDirectory()) {
             throw new IllegalArgumentException(String.format("Not a directory: %s.", outputDirectory.getAbsolutePath()));
         }
@@ -240,7 +241,7 @@ public class PstConverter {
                 // ignore exception
             }
         }
-        return new PstConvertResult(messageCount, watch.getTime());
+        return new ConvertResult(messageCount, watch.getTime());
     }
 
     /**

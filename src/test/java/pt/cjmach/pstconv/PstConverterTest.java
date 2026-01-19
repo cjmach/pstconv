@@ -62,7 +62,7 @@ public class PstConverterTest {
         Store store = null;
         
         try {
-            PstConvertResult result = instance.convert(inputFile, outputDirectory, format, encoding);
+            ConvertResult result = instance.convert(inputFile, outputDirectory, format, encoding);
             assertEquals(expectedTotalMessageCount, result.getMessageCount(), "Unexpected number of converted messages.");
             
             store = instance.createStore(outputDirectory, format, encoding);

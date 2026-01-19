@@ -15,30 +15,20 @@
  */
 package pt.cjmach.pstconv;
 
+import com.pff.PSTException;
+import java.io.File;
+import java.io.IOException;
+import javax.mail.MessagingException;
+
 /**
  *
- * @author cmachado
+ * @author mach
  */
-public class PstConvertResult {
-    private final long messageCount;
-    private final long durationInMillis;
+public class OstConverter implements OutlookFileConverter {
 
-    public PstConvertResult(long messageCount, long durationInMillis) {
-        this.messageCount = messageCount;
-        this.durationInMillis = durationInMillis;
+    @Override
+    public ConvertResult convert(File inputFile, File outputDirectory, MailMessageFormat format, String encoding) throws IOException, MessagingException, PSTException {
+        throw new UnsupportedOperationException("Not supported yet."); 
     }
-
-    /**
-     * @return The number of successfully converted messages.
-     */
-    public long getMessageCount() {
-        return messageCount;
-    }
-
-    /**
-     * @return The time taken to convert to entire PST file, in milliseconds.
-     */
-    public long getDurationInMillis() {
-        return durationInMillis;
-    }
+    
 }
