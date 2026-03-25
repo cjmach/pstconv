@@ -33,6 +33,7 @@ import java.nio.charset.CoderResult;
 import java.nio.charset.MalformedInputException;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.List;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeSet;
@@ -228,10 +229,10 @@ public class PstConverter implements OutlookFileConverter {
         try {
             store.connect();
             Folder rootFolder = store.getDefaultFolder();
-            PSTFolder pstRootFolder = pstFile.getRootFolder();
+            PSTFolder pstRootFolder = pstFile.getRootFolder(); // may throw PSTException
             messageCount = convert(pstRootFolder, rootFolder, "\\", charset);
             watch.stop();
-        } catch (PSTException | MessagingException | IOException ex) {
+        } catch (PSTException | IOException ex) {
             logger.error("Failed to convert PSTFile object.", ex);
             throw ex;
         } finally {
@@ -248,22 +249,40 @@ public class PstConverter implements OutlookFileConverter {
      * Traverses all PSTFolders recursively, starting from the root PSTFolder,
      * and extracts all email messages to a javax.mail.Folder.
      *
-     * @param pstFolder
-     * @param mailFolder
-     * @param path
-     * @param charset
-     * @return
-     * @throws PSTException
+     * @param pstFolder The PST folder to traverse.
+     * @param mailFolder The folder where all the contents of the traversed PST folder are stored.
+     * @param path PST folder path.
+     * @param charset Charset used to convert the message headers and body.
+     * @return The count of all messages that were successfully parsed.
      * @throws IOException
      * @throws MessagingException
      */
-    long convert(PSTFolder pstFolder, Folder mailFolder, String path, Charset charset) throws PSTException, IOException, MessagingException {
+    long convert(PSTFolder pstFolder, Folder mailFolder, String path, Charset charset) throws IOException {
         long messageCount = 0;
         if (pstFolder.getContentCount() > 0) {
-            PSTObject child = pstFolder.getNextChild();
+            PSTObject child; 
 
             MimeMessage[] messages = new MimeMessage[1];
-            while (child != null) {
+            while (true) {
+                try {
+                    child = pstFolder.getNextChild();
+                } catch (PSTException ex) {
+                    logger.error("Failed to resolve item in folder {} due to the following error: {}.", 
+                            pstFolder.getDisplayName(), ex.getMessage());
+                    // Move on to the next child.
+                    continue;
+                } catch (IndexOutOfBoundsException ex) {
+                    // This exception is thrown by java-libpst on more recent 
+                    // versions (0.9.5-SNAPSHOT). It only happens when the PST 
+                    // content is read from a stream.
+                    logger.error("Index out of bounds when trying to get next child inn folder {} ({}).", 
+                            pstFolder.getDisplayName(), pstFolder.getDescriptorNodeId());
+                    // Try to continue to the next PST folder.
+                    break;
+                }
+                if (child == null) { // no more messages?
+                    break;
+                }
                 String errorMsg = "Failed to append message id {} to folder {}.";
                 PSTMessage pstMessage = (PSTMessage) child;
                 try {
@@ -287,39 +306,40 @@ public class PstConverter implements OutlookFileConverter {
                         }
                     }
                     logger.error(errorMsg, child.getDescriptorNodeId(), mailFolder.getFullName(), ex);
-                } catch (PSTException | IOException ex) {
+                } catch (PSTException ex) {
                     // Handle other exceptions as well and move on to the next 
                     // PST message.
                     logger.error(errorMsg,
                             child.getDescriptorNodeId(), mailFolder.getFullName(), ex);
                 }
-                try {
-                    child = pstFolder.getNextChild();
-                } catch (IndexOutOfBoundsException ex) {
-                    // This exception is thrown by java-libpst on more recent 
-                    // versions (0.9.5-SNAPSHOT). It only happens when the PST 
-                    // content is read from a stream.
-                    logger.error("Index out of bounds when trying to get next child on folder {} ({}).", 
-                            pstFolder.getDisplayName(), pstFolder.getDescriptorNodeId());
-                    // Try to continue to the next PST folder.
-                    break;
-                }
             }
         }
         if (pstFolder.hasSubfolders()) {
-            for (PSTFolder pstSubFolder : pstFolder.getSubFolders()) {
+            List<PSTFolder> subFolders;
+            try {
+                subFolders = pstFolder.getSubFolders();
+            } catch (PSTException ex) {
+                logger.error("Failed to get sub-folders in folder {} due to the following error: {}", 
+                        pstFolder.getDisplayName(), ex.getMessage());
+                return messageCount;
+            }
+            for (PSTFolder pstSubFolder : subFolders) {
                 String folderName = PstUtil.normalizeString(pstSubFolder.getDisplayName());
                 String subPath = path + "\\" + folderName;
-                Folder mboxSubFolder = mailFolder.getFolder(folderName);
-                if (!mboxSubFolder.exists()) {
-                    if (!mboxSubFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
-                        logger.warn("Failed to create mail sub folder {}.", subPath);
-                        continue;
+                try (Folder mboxSubFolder = mailFolder.getFolder(folderName)) {
+                    if (!mboxSubFolder.exists()) {
+                        if (!mboxSubFolder.create(Folder.HOLDS_FOLDERS | Folder.HOLDS_MESSAGES)) {
+                            logger.warn("Failed to create mail sub folder {}.", subPath);
+                            continue; // move on to the next sub-folder.
+                        }
                     }
+                    mboxSubFolder.open(Folder.READ_WRITE);
+                    messageCount += convert(pstSubFolder, mboxSubFolder, subPath, charset);
+                } catch (MessagingException ex) {
+                    logger.warn("Failed to process sub folder {} in folder {}.", 
+                            pstSubFolder.getDisplayName(), pstFolder.getDisplayName());
+                    // continue to the next sub-folder.
                 }
-                mboxSubFolder.open(Folder.READ_WRITE);
-                messageCount += convert(pstSubFolder, mboxSubFolder, subPath, charset);
-                mboxSubFolder.close(false);
             }
         }
         return messageCount;
